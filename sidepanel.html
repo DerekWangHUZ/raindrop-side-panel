@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raindrop Side Panel</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon32.png" alt="" class="brand-icon">
+        <div>
+          <div class="brand-title">Raindrop</div>
+          <div class="brand-subtitle">Side Panel</div>
+        </div>
+      </div>
+      <button id="settingsButton" class="icon-button" type="button" title="设置" aria-label="打开设置">⚙</button>
+    </header>
+
+    <section id="setupCard" class="setup-card hidden">
+      <div class="setup-icon">🔑</div>
+      <h1>先连接 Raindrop</h1>
+      <p>在设置页粘贴你的 Raindrop Test Token。该 Token 可长期使用，并且只保存在本机扩展存储中。</p>
+      <button id="openSettingsButton" class="primary-button" type="button">打开设置</button>
+    </section>
+
+    <section id="mainContent" class="main-content hidden">
+      <div class="search-row">
+        <label class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="搜索当前收藏夹…">
+        </label>
+        <button id="refreshButton" class="icon-button refresh-button" type="button" title="刷新" aria-label="刷新">↻</button>
+      </div>
+
+      <div class="save-card">
+        <div class="save-card-copy">
+          <span class="eyebrow">快速收藏</span>
+          <strong id="currentPageTitle">当前网页</strong>
+          <span id="saveDestination" class="muted">保存到：未分类</span>
+        </div>
+        <button id="saveCurrentButton" class="primary-button save-button" type="button">＋ 保存当前页</button>
+      </div>
+
+      <div class="collection-row">
+        <label for="collectionSelect">收藏夹</label>
+        <select id="collectionSelect" aria-label="选择收藏夹">
+          <option value="0">全部书签</option>
+          <option value="-1">未分类</option>
+        </select>
+      </div>
+
+      <div class="list-heading">
+        <div>
+          <strong id="listTitle">全部书签</strong>
+          <span id="resultCount" class="count-label"></span>
+        </div>
+        <span id="loadingLabel" class="loading-label"></span>
+      </div>
+
+      <section id="bookmarkList" class="bookmark-list" aria-live="polite"></section>
+
+      <button id="loadMoreButton" class="secondary-button load-more hidden" type="button">加载更多</button>
+
+      <div id="emptyState" class="empty-state hidden">
+        <div class="empty-icon">☂</div>
+        <strong>这里还没有书签</strong>
+        <span>换个收藏夹或搜索词试试。</span>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>
