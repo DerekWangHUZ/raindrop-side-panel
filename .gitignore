@@ -1,0 +1,28 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local / temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build / package output
+dist/
+build/
+*.zip
+
+# Node tooling, if added later
+node_modules/
+
+# Local secrets / environment files
+.env
+.env.*
+!.env.example
