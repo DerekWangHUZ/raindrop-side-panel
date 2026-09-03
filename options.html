@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raindrop Side Panel 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <section class="settings-card">
+      <div class="brand-row">
+        <img src="icons/icon48.png" alt="" class="brand-icon">
+        <div>
+          <h1>Raindrop Side Panel</h1>
+          <p>连接你的 Raindrop.io 账户</p>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <label for="tokenInput">Raindrop Test Token</label>
+        <div class="token-row">
+          <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Raindrop Test Token">
+          <button id="toggleTokenButton" class="ghost-button" type="button">显示</button>
+        </div>
+        <p class="help-text">填写 Raindrop 的 <strong>Test Token</strong>。该 Token 用于此扩展访问你的 Raindrop 数据，可长期使用。Token 仅保存在 <code>chrome.storage.local</code>，扩展直接访问 Raindrop API，不经过第三方服务器。</p>
+      </div>
+
+      <div id="accountCard" class="account-card hidden">
+        <div class="status-dot"></div>
+        <div>
+          <strong id="accountName">已连接</strong>
+          <span id="accountEmail"></span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="saveButton" class="primary-button" type="button">验证并保存</button>
+        <button id="clearButton" class="secondary-button" type="button">清除 Token</button>
+      </div>
+
+      <div id="statusMessage" class="status-message" role="status"></div>
+
+      <div class="guide">
+        <h2>如何获取 Test Token</h2>
+        <ol>
+          <li>打开 Raindrop.io 的设置。</li>
+          <li>进入“集成 → 开发者”页面。</li>
+          <li>创建开发者应用，然后点击 <strong>Create test token</strong>。</li>
+          <li>复制生成的 Test Token。</li>
+          <li>粘贴到上方，点击“验证并保存”。</li>
+        </ol>
+        <p>如果你主动撤销、重新生成 Token，或删除对应开发者应用，原 Test Token 会失效。若 Raindrop 后续调整入口，以其开发者文档为准。</p>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>
