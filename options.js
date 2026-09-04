@@ -55,6 +55,11 @@ function renderThemeColors(selected) {
     button.setAttribute('aria-label', color.label);
     button.setAttribute('role', 'radio');
     button.setAttribute('aria-checked', String(id === selected));
+    const check = document.createElement('span');
+    check.className = 'swatch-check';
+    check.textContent = '✓';
+    check.setAttribute('aria-hidden', 'true');
+    button.appendChild(check);
     button.addEventListener('click', () => updateAppearance({ themeColor: id }));
     themeColorPicker.appendChild(button);
   });
