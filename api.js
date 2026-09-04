@@ -90,23 +90,50 @@ export async function getRaindrops(collectionId = 0, {
   return apiFetch(`/raindrops/${collectionId}?${params.toString()}`);
 }
 
-export async function createRaindrop({ link, title = '', collectionId = -1 }) {
+function normalizedCollectionId(collectionId) {
+  const numericCollectionId = Number(collectionId);
+  return Number.isFinite(numericCollectionId) && numericCollectionId !== 0
+    ? numericCollectionId
+    : -1;
+}
+
+function normalizedTags(tags) {
+  if (Array.isArray(tags)) {
+    return [...new Set(tags.map(tag => String(tag).trim()).filter(Boolean))];
+  }
+  return [...new Set(String(tags || '')
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean))];
+}
+
+export function buildRaindropPayload({
+  link,
+  title = '',
+  collectionId = -1,
+  tags = [],
+  note = '',
+  excerpt = ''
+}) {
   if (!link) throw new RaindropApiError('没有可保存的网页地址');
 
   const payload = {
     link,
-    pleaseParse: {}
+    pleaseParse: {},
+    collection: { $id: normalizedCollectionId(collectionId) }
   };
 
-  if (title.trim()) payload.title = title.trim();
+  if (String(title).trim()) payload.title = String(title).trim();
+  const normalizedTagList = normalizedTags(tags);
+  if (normalizedTagList.length) payload.tags = normalizedTagList;
+  if (String(note).trim()) payload.note = String(note).trim();
+  if (String(excerpt).trim()) payload.excerpt = String(excerpt).trim();
 
-  // collection 0 代表“全部”，不能作为实际保存目标。
-  const normalizedCollectionId = Number(collectionId);
-  payload.collection = {
-    $id: Number.isFinite(normalizedCollectionId) && normalizedCollectionId !== 0
-      ? normalizedCollectionId
-      : -1
-  };
+  return payload;
+}
+
+export async function createRaindrop(options) {
+  const payload = buildRaindropPayload(options);
 
   const data = await apiFetch('/raindrop', {
     method: 'POST',
@@ -114,4 +141,93 @@ export async function createRaindrop({ link, title = '', collectionId = -1 }) {
   });
 
   return data?.item || null;
+}
+
+export async function createRaindrops(items, common = {}) {
+  if (!Array.isArray(items) || !items.length) {
+    throw new RaindropApiError('没有可新增的书签');
+  }
+  if (items.length > 100) {
+    throw new RaindropApiError('单次最多新增 100 条书签');
+  }
+
+  const payload = {
+    items: items.map(item => buildRaindropPayload({ ...common, ...item }))
+  };
+  const data = await apiFetch('/raindrops', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  return data?.items || [];
+}
+
+function buildUpdatePayload(updates = {}) {
+  const payload = {};
+  if (Object.prototype.hasOwnProperty.call(updates, 'link')) payload.link = String(updates.link).trim();
+  if (Object.prototype.hasOwnProperty.call(updates, 'title')) payload.title = String(updates.title || '').trim();
+  if (Object.prototype.hasOwnProperty.call(updates, 'collectionId')) {
+    payload.collection = { $id: normalizedCollectionId(updates.collectionId) };
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'tags')) payload.tags = normalizedTags(updates.tags);
+  if (Object.prototype.hasOwnProperty.call(updates, 'note')) payload.note = String(updates.note || '').trim();
+  if (Object.prototype.hasOwnProperty.call(updates, 'excerpt')) payload.excerpt = String(updates.excerpt || '').trim();
+  return payload;
+}
+
+export async function updateRaindrop(id, updates) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new RaindropApiError('无效的书签 ID');
+  }
+  const data = await apiFetch(`/raindrop/${numericId}`, {
+    method: 'PUT',
+    body: JSON.stringify(buildUpdatePayload(updates))
+  });
+  return data?.item || null;
+}
+
+export async function updateRaindrops(collectionId, { ids, ...updates }) {
+  const numericCollectionId = Number(collectionId);
+  const normalizedIds = (ids || []).map(Number).filter(id => Number.isFinite(id) && id > 0);
+  if (!Number.isFinite(numericCollectionId) || numericCollectionId === 0) {
+    throw new RaindropApiError('批量更新不能使用“全部书签”作为来源收藏夹');
+  }
+  if (!normalizedIds.length) throw new RaindropApiError('没有可更新的书签');
+
+  const data = await apiFetch(`/raindrops/${numericCollectionId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ids: normalizedIds, ...buildUpdatePayload(updates) })
+  });
+  return data?.modified || 0;
+}
+
+export async function getRaindrop(id) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new RaindropApiError('无效的书签 ID');
+  }
+  const data = await apiFetch(`/raindrop/${numericId}`);
+  return data?.item || null;
+}
+
+export async function deleteRaindrop(id) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new RaindropApiError('无效的书签 ID');
+  }
+  await apiFetch(`/raindrop/${numericId}`, { method: 'DELETE' });
+}
+
+export async function deleteRaindrops(collectionId, ids) {
+  const numericCollectionId = Number(collectionId);
+  const normalizedIds = (ids || []).map(Number).filter(id => Number.isFinite(id) && id > 0);
+  if (!Number.isFinite(numericCollectionId) || numericCollectionId === 0) {
+    throw new RaindropApiError('批量删除不能使用“全部书签”作为来源收藏夹');
+  }
+  if (!normalizedIds.length) throw new RaindropApiError('没有可删除的书签');
+
+  await apiFetch(`/raindrops/${numericCollectionId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ ids: normalizedIds })
+  });
 }

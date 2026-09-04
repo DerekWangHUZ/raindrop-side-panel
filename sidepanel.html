@@ -30,7 +30,7 @@
       <div class="search-row">
         <label class="search-box">
           <span class="search-icon">⌕</span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="搜索当前收藏夹…">
+          <input id="searchInput" type="search" autocomplete="off" placeholder="搜索全部书签…">
         </label>
         <button id="refreshButton" class="icon-button refresh-button" type="button" title="刷新" aria-label="刷新">↻</button>
       </div>
@@ -44,19 +44,31 @@
         <button id="saveCurrentButton" class="primary-button save-button" type="button">＋ 保存当前页</button>
       </div>
 
-      <div class="collection-row">
-        <label for="collectionSelect">收藏夹</label>
-        <select id="collectionSelect" aria-label="选择收藏夹">
-          <option value="0">全部书签</option>
-          <option value="-1">未分类</option>
-        </select>
+      <div class="action-row">
+        <button id="bulkAddButton" class="secondary-button" type="button">批量新增</button>
+        <div id="selectionActions" class="selection-actions hidden">
+          <span id="selectionCount" class="muted"></span>
+          <button id="bulkEditButton" class="secondary-button" type="button">批量编辑</button>
+          <button id="bulkDeleteButton" class="danger-button" type="button">批量删除</button>
+        </div>
       </div>
 
-      <div class="list-heading">
-        <div>
-          <strong id="listTitle">全部书签</strong>
-          <span id="resultCount" class="count-label"></span>
+      <section class="collection-panel" aria-label="收藏夹">
+        <div class="section-heading">
+          <strong>收藏夹</strong>
+          <button id="collapseAllButton" class="text-button" type="button">全部收起</button>
         </div>
+        <div id="collectionTree" class="collection-tree"></div>
+      </section>
+
+      <div class="list-heading">
+        <label class="select-all-label">
+          <input id="selectAllCheckbox" type="checkbox" aria-label="选择当前列表全部书签">
+          <span>
+            <strong id="listTitle">全部书签</strong>
+            <span id="resultCount" class="count-label"></span>
+          </span>
+        </label>
         <span id="loadingLabel" class="loading-label"></span>
       </div>
 
@@ -71,6 +83,100 @@
       </div>
     </section>
   </main>
+
+  <dialog id="editorDialog" class="app-dialog">
+    <form id="editorForm" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">书签</span>
+          <h2 id="editorHeading">保存书签</h2>
+        </div>
+        <button id="editorCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <label class="field-label" for="editorLinkInput">链接</label>
+      <input id="editorLinkInput" class="field-input" type="url" required>
+      <label class="field-label" for="editorTitleInput">标题</label>
+      <input id="editorTitleInput" class="field-input" type="text" maxlength="1000" placeholder="可留空">
+      <label class="field-label" for="editorCollectionSelect">收藏夹</label>
+      <select id="editorCollectionSelect" class="field-input" required></select>
+      <details class="advanced-fields">
+        <summary>更多字段</summary>
+        <label class="field-label" for="editorTagsInput">标签</label>
+        <input id="editorTagsInput" class="field-input" type="text" placeholder="用逗号分隔">
+        <label class="field-label" for="editorNoteInput">备注</label>
+        <textarea id="editorNoteInput" class="field-input" rows="3" maxlength="10000"></textarea>
+        <label class="field-label" for="editorExcerptInput">摘要</label>
+        <textarea id="editorExcerptInput" class="field-input" rows="3" maxlength="10000"></textarea>
+      </details>
+      <p id="editorError" class="form-error"></p>
+      <div class="dialog-actions">
+        <button id="editorCancelButton" class="secondary-button" type="button">取消</button>
+        <button id="editorSubmitButton" class="primary-button" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="bulkAddDialog" class="app-dialog">
+    <form id="bulkAddForm" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">批量操作</span>
+          <h2>批量新增书签</h2>
+        </div>
+        <button id="bulkAddCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <label class="field-label" for="bulkAddInput">每行一个 URL，也支持“标题 | URL”</label>
+      <textarea id="bulkAddInput" class="field-input code-input" rows="7" placeholder="https://example.com\n示例页面 | https://example.com/article"></textarea>
+      <label class="field-label" for="bulkAddCollectionSelect">收藏夹</label>
+      <select id="bulkAddCollectionSelect" class="field-input" required></select>
+      <label class="field-label" for="bulkAddTagsInput">公共标签</label>
+      <input id="bulkAddTagsInput" class="field-input" type="text" placeholder="用逗号分隔，可留空">
+      <label class="field-label" for="bulkAddNoteInput">公共备注</label>
+      <textarea id="bulkAddNoteInput" class="field-input" rows="2"></textarea>
+      <div id="bulkAddErrors" class="form-error"></div>
+      <div class="dialog-actions">
+        <button id="bulkAddCancelButton" class="secondary-button" type="button">取消</button>
+        <button id="bulkAddSubmitButton" class="primary-button" type="submit">开始新增</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="bulkEditDialog" class="app-dialog">
+    <form id="bulkEditForm" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">批量操作</span>
+          <h2>批量编辑书签</h2>
+        </div>
+        <button id="bulkEditCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="dialog-help">只会应用勾选的字段；未勾选的字段保持原值。</p>
+      <label class="check-field"><input id="bulkApplyCollection" type="checkbox"> <span>移动到收藏夹</span></label>
+      <select id="bulkEditCollectionSelect" class="field-input" disabled></select>
+      <label class="check-field"><input id="bulkApplyTags" type="checkbox"> <span>替换标签</span></label>
+      <input id="bulkEditTagsInput" class="field-input" type="text" disabled placeholder="用逗号分隔；留空表示清除">
+      <label class="check-field"><input id="bulkApplyNote" type="checkbox"> <span>设置/清空备注</span></label>
+      <textarea id="bulkEditNoteInput" class="field-input" rows="2" disabled></textarea>
+      <label class="check-field"><input id="bulkApplyExcerpt" type="checkbox"> <span>设置/清空摘要</span></label>
+      <textarea id="bulkEditExcerptInput" class="field-input" rows="2" disabled></textarea>
+      <p id="bulkEditError" class="form-error"></p>
+      <div class="dialog-actions">
+        <button id="bulkEditCancelButton" class="secondary-button" type="button">取消</button>
+        <button id="bulkEditSubmitButton" class="primary-button" type="submit">应用修改</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="app-dialog confirm-dialog">
+    <form id="confirmForm" method="dialog">
+      <h2 id="confirmHeading">确认操作</h2>
+      <p id="confirmMessage"></p>
+      <div class="dialog-actions">
+        <button id="confirmCancelButton" class="secondary-button" type="button">取消</button>
+        <button id="confirmSubmitButton" class="danger-button" type="submit">确认</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script type="module" src="sidepanel.js"></script>
