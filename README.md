@@ -1,6 +1,6 @@
 # Raindrop Side Panel
 
-一个面向 Chrome / Chromium（包括 Tabbit）的 Manifest V3 扩展，把 Raindrop.io 书签管理放进浏览器 Side Panel。
+一个面向 Chrome / Chromium 的 Manifest V3 扩展，把 Raindrop.io 书签管理放进浏览器 Side Panel。
 
 ## 功能
 
@@ -16,7 +16,7 @@
 ## 安装（开发者模式）
 
 1. 解压本项目。
-2. 打开 Tabbit 的扩展管理页面。
+2. 打开浏览器的扩展管理页面（通常为 `chrome://extensions`）。
 3. 开启“开发者模式”。
 4. 点击“加载已解压的扩展程序”，选择本项目目录。
 5. 打开扩展“详细信息” → “扩展程序选项”，或者在侧边栏中点击设置按钮。
@@ -63,11 +63,11 @@ Test Token 可长期使用，但可以被撤销。如果你主动撤销或重新
 
 ## Side Panel 位置
 
-扩展使用 Chromium 提供的 `chrome.sidePanel`。Side Panel 显示在左侧还是右侧由浏览器自身的侧边栏设置决定，扩展不能强制指定位置。若 Tabbit 提供侧边栏位置设置，请将其设为右侧。
+扩展使用 Chromium 提供的 `chrome.sidePanel`。Side Panel 显示在左侧还是右侧由浏览器自身的侧边栏设置决定，扩展不能强制指定位置。
 
 ## 兼容性
 
-需要浏览器支持 Chrome Side Panel API（`chrome.sidePanel`）。目标浏览器为 Tabbit；其他 Chromium 浏览器也需要实际提供该扩展 API。
+需要浏览器支持 Chrome Side Panel API（`chrome.sidePanel`）。Chrome 114+ 或其他实际提供该 API 的 Chromium 浏览器均可尝试加载。
 
 ## 项目结构
 
