@@ -52,6 +52,6 @@ assert.deepStrictEqual(buildRaindropPayload({
   note: 'note'
 });
 
-assert.deepStrictEqual(Object.keys(THEME_COLORS), ['violet', 'blue', 'teal', 'green', 'orange', 'rose']);
+assert.deepStrictEqual(Object.keys(THEME_COLORS), ['violet', 'blue', 'teal', 'green', 'orange', 'rose', 'gray']);
 assert.deepStrictEqual(THEME_MODES.map(mode => mode.id), ['system', 'light', 'dark']);
-console.log('All v2 utility checks passed.');
+console.log('All v3 utility checks passed.');

@@ -17,45 +17,63 @@
         </div>
       </div>
 
-      <div class="field-block">
-        <label for="tokenInput">Raindrop Test Token</label>
-        <div class="token-row">
-          <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Raindrop Test Token">
-          <button id="toggleTokenButton" class="ghost-button" type="button">显示</button>
+      <section class="settings-section token-section" aria-labelledby="tokenHeading">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ACCOUNT</span>
+            <h2 id="tokenHeading">连接账户</h2>
+          </div>
+          <span class="section-number">01</span>
         </div>
-        <p class="help-text">填写 Raindrop 的 <strong>Test Token</strong>。该 Token 用于此扩展访问你的 Raindrop 数据，可长期使用。Token 仅保存在 <code>chrome.storage.local</code>，扩展直接访问 Raindrop API，不经过第三方服务器。</p>
-      </div>
-
-      <div id="accountCard" class="account-card hidden">
-        <div class="status-dot"></div>
-        <div>
-          <strong id="accountName">已连接</strong>
-          <span id="accountEmail"></span>
+        <div class="field-block">
+          <label for="tokenInput">Raindrop Test Token</label>
+          <div class="token-row">
+            <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Raindrop Test Token">
+            <button id="toggleTokenButton" class="ghost-button" type="button">显示</button>
+          </div>
+          <p class="help-text">填写 Raindrop 的 <strong>Test Token</strong>。该 Token 仅保存在本机扩展存储中，扩展直接访问 Raindrop API，不经过第三方服务器。</p>
         </div>
-      </div>
+        <div class="actions">
+          <button id="saveButton" class="primary-button" type="button">验证并保存</button>
+          <button id="clearButton" class="secondary-button" type="button">清除 Token</button>
+        </div>
+        <div id="statusMessage" class="status-message" role="status"></div>
+        <div id="accountCard" class="account-card hidden">
+          <div class="status-dot"></div>
+          <div>
+            <strong id="accountName">已连接</strong>
+            <span id="accountEmail"></span>
+          </div>
+        </div>
+      </section>
 
-      <section class="appearance-section" aria-labelledby="appearanceHeading">
-        <h2 id="appearanceHeading">外观</h2>
+      <section class="settings-section appearance-section" aria-labelledby="appearanceHeading">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">PERSONALIZE</span>
+            <h2 id="appearanceHeading">外观</h2>
+          </div>
+          <span class="section-number">02</span>
+        </div>
         <div class="appearance-field">
-          <label for="themeModeSelect">明暗模式</label>
+          <div>
+            <label for="themeModeSelect">明暗模式</label>
+            <span class="field-caption">跟随系统，或固定一种模式</span>
+          </div>
           <select id="themeModeSelect">
             <option value="system">跟随系统</option>
             <option value="light">固定浅色</option>
             <option value="dark">固定深色</option>
           </select>
         </div>
-        <div class="appearance-field">
-          <span>主题色</span>
+        <div class="appearance-field color-field">
+          <div>
+            <span class="field-label">主题色</span>
+            <span class="field-caption">选择界面的强调色</span>
+          </div>
           <div id="themeColorPicker" class="theme-color-picker" role="radiogroup" aria-label="选择主题色"></div>
         </div>
       </section>
-
-      <div class="actions">
-        <button id="saveButton" class="primary-button" type="button">验证并保存</button>
-        <button id="clearButton" class="secondary-button" type="button">清除 Token</button>
-      </div>
-
-      <div id="statusMessage" class="status-message" role="status"></div>
 
       <div class="guide">
         <h2>如何获取 Test Token</h2>

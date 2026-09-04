@@ -4,7 +4,8 @@ export const THEME_COLORS = {
   teal: { label: '青色', light: '#0f766e', dark: '#2dd4bf' },
   green: { label: '绿色', light: '#15803d', dark: '#4ade80' },
   orange: { label: '橙色', light: '#c2410c', dark: '#fb923c' },
-  rose: { label: '玫红', light: '#be123c', dark: '#fb7185' }
+  rose: { label: '玫红', light: '#be123c', dark: '#fb7185' },
+  gray: { label: '灰色', light: '#5f6368', dark: '#a3aab5' }
 };
 
 export const THEME_MODES = [
