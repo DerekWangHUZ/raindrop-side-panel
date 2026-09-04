@@ -34,6 +34,22 @@
         </div>
       </div>
 
+      <section class="appearance-section" aria-labelledby="appearanceHeading">
+        <h2 id="appearanceHeading">外观</h2>
+        <div class="appearance-field">
+          <label for="themeModeSelect">明暗模式</label>
+          <select id="themeModeSelect">
+            <option value="system">跟随系统</option>
+            <option value="light">固定浅色</option>
+            <option value="dark">固定深色</option>
+          </select>
+        </div>
+        <div class="appearance-field">
+          <span>主题色</span>
+          <div id="themeColorPicker" class="theme-color-picker" role="radiogroup" aria-label="选择主题色"></div>
+        </div>
+      </section>
+
       <div class="actions">
         <button id="saveButton" class="primary-button" type="button">验证并保存</button>
         <button id="clearButton" class="secondary-button" type="button">清除 Token</button>

@@ -1,4 +1,6 @@
 import { validateToken } from './api.js';
+import { initTheme, saveThemeSettings } from './theme.js';
+import { DEFAULT_THEME_SETTINGS, THEME_COLORS, THEME_MODES } from './utils.mjs';
 
 const tokenInput = document.querySelector('#tokenInput');
 const toggleTokenButton = document.querySelector('#toggleTokenButton');
@@ -8,6 +10,8 @@ const statusMessage = document.querySelector('#statusMessage');
 const accountCard = document.querySelector('#accountCard');
 const accountName = document.querySelector('#accountName');
 const accountEmail = document.querySelector('#accountEmail');
+const themeModeSelect = document.querySelector('#themeModeSelect');
+const themeColorPicker = document.querySelector('#themeColorPicker');
 
 function setStatus(message, type = '') {
   statusMessage.textContent = message;
@@ -37,6 +41,41 @@ async function loadSavedSettings() {
     showAccount(null);
     setStatus(`已保存的 Token 无法验证：${error.message}`, 'error');
   }
+}
+
+function renderThemeColors(selected) {
+  themeColorPicker.replaceChildren();
+  Object.entries(THEME_COLORS).forEach(([id, color]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `theme-swatch${id === selected ? ' selected' : ''}`;
+    button.dataset.color = id;
+    button.style.setProperty('--swatch', color.light);
+    button.title = color.label;
+    button.setAttribute('aria-label', color.label);
+    button.setAttribute('role', 'radio');
+    button.setAttribute('aria-checked', String(id === selected));
+    button.addEventListener('click', () => updateAppearance({ themeColor: id }));
+    themeColorPicker.appendChild(button);
+  });
+}
+
+async function updateAppearance(changes = {}) {
+  const current = await chrome.storage.local.get(['themeColor', 'themeMode']);
+  const settings = await saveThemeSettings({
+    ...DEFAULT_THEME_SETTINGS,
+    ...current,
+    ...changes
+  });
+  themeModeSelect.value = settings.themeMode;
+  renderThemeColors(settings.themeColor);
+}
+
+async function loadAppearance() {
+  const settings = await initTheme();
+  themeModeSelect.replaceChildren(...THEME_MODES.map(mode => new Option(mode.label, mode.id)));
+  themeModeSelect.value = settings.themeMode;
+  renderThemeColors(settings.themeColor);
 }
 
 toggleTokenButton.addEventListener('click', () => {
@@ -77,4 +116,6 @@ clearButton.addEventListener('click', async () => {
   setStatus('Token 已从本机扩展存储中清除。', 'success');
 });
 
+themeModeSelect.addEventListener('change', () => updateAppearance({ themeMode: themeModeSelect.value }));
+loadAppearance().catch(error => console.error('外观设置加载失败：', error));
 loadSavedSettings();
