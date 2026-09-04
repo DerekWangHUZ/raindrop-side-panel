@@ -15,7 +15,10 @@ import {
   getItemCollectionId,
   groupItemsByCollection,
   normalizeTags,
-  parseBulkLines
+  parseBulkLines,
+  DEFAULT_SORT,
+  SORT_OPTIONS,
+  normalizeSort
 } from './utils.mjs';
 import { initTheme } from './theme.js';
 
@@ -25,6 +28,7 @@ const els = {
   settingsButton: document.querySelector('#settingsButton'),
   openSettingsButton: document.querySelector('#openSettingsButton'),
   searchInput: document.querySelector('#searchInput'),
+  sortSelect: document.querySelector('#sortSelect'),
   refreshButton: document.querySelector('#refreshButton'),
   currentPageTitle: document.querySelector('#currentPageTitle'),
   saveDestination: document.querySelector('#saveDestination'),
@@ -94,6 +98,7 @@ const state = {
   items: [],
   selectedIds: new Set(),
   search: '',
+  sort: DEFAULT_SORT,
   loading: false,
   collectionsById: new Map(),
   collectionTree: [],
@@ -451,7 +456,7 @@ async function loadBookmarks({ reset = true } = {}) {
       page: requestedPage,
       perpage: 30,
       nested: Boolean(search),
-      sort: search ? 'score' : '-created'
+      sort: state.sort
     });
     if (sequence !== state.requestSequence) return;
     const newItems = data?.items || [];
@@ -740,9 +745,11 @@ async function bootstrap() {
   }
   setConnected(true);
   try {
-    const stored = await chrome.storage.local.get(['lastCollectionId', 'expandedCollectionIds']);
+    const stored = await chrome.storage.local.get(['lastCollectionId', 'expandedCollectionIds', 'sortMode']);
     const savedCollectionId = Number(stored.lastCollectionId);
     state.selectedCollectionId = Number.isFinite(savedCollectionId) ? savedCollectionId : 0;
+    state.sort = normalizeSort(stored.sortMode);
+    els.sortSelect.value = state.sort;
     const data = await getCollectionData();
     populateCollections(data, Array.isArray(stored.expandedCollectionIds) ? stored.expandedCollectionIds : null);
     await loadCurrentTab();
@@ -758,6 +765,12 @@ async function bootstrap() {
 
 els.settingsButton.addEventListener('click', () => chrome.runtime.openOptionsPage());
 els.openSettingsButton.addEventListener('click', () => chrome.runtime.openOptionsPage());
+els.sortSelect.addEventListener('change', async () => {
+  state.sort = normalizeSort(els.sortSelect.value);
+  els.sortSelect.value = state.sort;
+  await chrome.storage.local.set({ sortMode: state.sort });
+  await loadBookmarks({ reset: true });
+});
 els.refreshButton.addEventListener('click', async () => {
   try {
     await refreshAfterMutation();
@@ -827,4 +840,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 initTheme().catch(error => console.error('主题初始化失败：', error));
+els.sortSelect.replaceChildren(...SORT_OPTIONS.map(option => new Option(option.label, option.id)));
+els.sortSelect.value = DEFAULT_SORT;
 bootstrap();
