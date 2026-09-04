@@ -4,10 +4,13 @@ import {
   THEME_COLORS,
   THEME_MODES,
   chunkItems,
+  DEFAULT_SORT,
   getItemCollectionId,
   groupItemsByCollection,
   normalizeTags,
-  parseBulkLines
+  normalizeSort,
+  parseBulkLines,
+  SORT_OPTIONS
 } from '../utils.mjs';
 
 const parsed = parseBulkLines([
@@ -54,4 +57,10 @@ assert.deepStrictEqual(buildRaindropPayload({
 
 assert.deepStrictEqual(Object.keys(THEME_COLORS), ['violet', 'blue', 'teal', 'green', 'orange', 'rose', 'gray']);
 assert.deepStrictEqual(THEME_MODES.map(mode => mode.id), ['system', 'light', 'dark']);
-console.log('All v3 utility checks passed.');
+assert.strictEqual(DEFAULT_SORT, '-created');
+assert.deepStrictEqual(SORT_OPTIONS.map(option => option.id), [
+  '-created', 'created', '-lastUpdate', '+lastUpdate', 'title', '-title', 'domain', '-domain', '-sort'
+]);
+assert.strictEqual(normalizeSort('title'), 'title');
+assert.strictEqual(normalizeSort('unsupported'), DEFAULT_SORT);
+console.log('All v4 utility checks passed.');

@@ -19,6 +19,25 @@ export const DEFAULT_THEME_SETTINGS = {
   themeMode: 'system'
 };
 
+export const SORT_OPTIONS = [
+  { id: '-created', label: '最近添加' },
+  { id: 'created', label: '最早添加' },
+  { id: '-lastUpdate', label: '最近更新' },
+  { id: '+lastUpdate', label: '最早更新' },
+  { id: 'title', label: '标题 A–Z' },
+  { id: '-title', label: '标题 Z–A' },
+  { id: 'domain', label: '域名 A–Z' },
+  { id: '-domain', label: '域名 Z–A' },
+  { id: '-sort', label: '自定义顺序' }
+];
+
+export const DEFAULT_SORT = '-created';
+
+export function normalizeSort(value) {
+  const candidate = String(value || '');
+  return SORT_OPTIONS.some(option => option.id === candidate) ? candidate : DEFAULT_SORT;
+}
+
 export function normalizeTags(value) {
   const values = Array.isArray(value) ? value : String(value || '').split(',');
   return [...new Set(values.map(tag => String(tag).trim()).filter(Boolean))];
