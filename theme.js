@@ -36,10 +36,15 @@ export async function initTheme() {
   if (!initTheme.systemListener && window.matchMedia) {
     initTheme.systemListener = window.matchMedia('(prefers-color-scheme: dark)');
     const updateSystemTheme = () => {
-      if (document.documentElement.dataset.themeMode === 'system') applyTheme(settings);
+      if (document.documentElement.dataset.themeMode === 'system') {
+        applyTheme({
+          themeColor: document.documentElement.dataset.themeColor,
+          themeMode: 'system'
+        });
+      }
     };
-    initTheme.systemListener.addEventListener?.('change', updateSystemTheme);
-    initTheme.systemListener.addListener?.(updateSystemTheme);
+    if (initTheme.systemListener.addEventListener) initTheme.systemListener.addEventListener('change', updateSystemTheme);
+    else initTheme.systemListener.addListener?.(updateSystemTheme);
   }
 
   if (!initTheme.storageListener) {
