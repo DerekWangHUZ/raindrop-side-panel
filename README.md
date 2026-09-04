@@ -1,5 +1,7 @@
 # Raindrop Side Panel
 
+![Raindrop Side Panel 项目封面](assets/project-cover.png)
+
 一个面向 Chrome / Chromium 的 Manifest V3 扩展，把 Raindrop.io 书签管理放进浏览器 Side Panel。
 
 ## 功能
