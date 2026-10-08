@@ -10,8 +10,8 @@ import {
 } from './utils.mjs';
 
 const MODE_HINTS = {
-  local: '在本地用规则整理书签名和简介：不额外联网，也没有额外费用。',
-  ai: '收藏后调用你配置的模型重写书签名和简介，需要 API Key，并且会产生相应费用。'
+  local: '点击 ✨ 后在本地用规则整理书签名和摘要：即时完成，不联网、不产生费用。',
+  ai: '点击 ✨ 后调用你配置的模型重写书签名和摘要，需要 API Key，并且会产生相应费用。'
 };
 
 const tokenInput = document.querySelector('#tokenInput');
@@ -24,8 +24,6 @@ const accountName = document.querySelector('#accountName');
 const accountEmail = document.querySelector('#accountEmail');
 const themeModeSelect = document.querySelector('#themeModeSelect');
 const themeColorPicker = document.querySelector('#themeColorPicker');
-const optimizeEnabled = document.querySelector('#optimizeEnabled');
-const optimizeBody = document.querySelector('#optimizeBody');
 const optimizeModeSelect = document.querySelector('#optimizeModeSelect');
 const optimizeModeHint = document.querySelector('#optimizeModeHint');
 const optimizeAiFields = document.querySelector('#optimizeAiFields');
@@ -132,8 +130,6 @@ async function grantOptimizeAccess() {
 }
 
 function renderOptimize(settings) {
-  optimizeEnabled.checked = settings.optimizeEnabled;
-  optimizeBody.classList.toggle('hidden', !settings.optimizeEnabled);
   optimizeModeSelect.value = settings.optimizeMode;
   optimizeModeHint.textContent = MODE_HINTS[settings.optimizeMode] || '';
   optimizeAiFields.classList.toggle('hidden', settings.optimizeMode !== 'ai');
@@ -186,11 +182,6 @@ clearButton.addEventListener('click', async () => {
 });
 
 themeModeSelect.addEventListener('change', () => updateAppearance({ themeMode: themeModeSelect.value }));
-
-optimizeEnabled.addEventListener('change', async () => {
-  const next = await saveOptimizeSettings({ optimizeEnabled: optimizeEnabled.checked });
-  renderOptimize(next);
-});
 
 optimizeModeSelect.addEventListener('change', async () => {
   const next = await saveOptimizeSettings({ optimizeMode: optimizeModeSelect.value });

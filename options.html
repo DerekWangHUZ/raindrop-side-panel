@@ -79,62 +79,54 @@
         <div class="section-heading">
           <div>
             <span class="eyebrow">AUTOMATION</span>
-            <h2 id="optimizeHeading">收藏时自动优化</h2>
+            <h2 id="optimizeHeading">优化方式</h2>
           </div>
           <span class="section-number">03</span>
         </div>
 
-        <label class="check-card">
-          <input id="optimizeEnabled" type="checkbox">
-          <span>
-            <span class="field-label">启用自动优化</span>
-            <span class="field-caption">收藏成功后，自动整理书签名和简介。默认关闭。</span>
-          </span>
-        </label>
+        <p class="help-text optimize-intro">在保存或编辑弹窗中点击 ✨ 按钮时，才会按下面的方式整理书签名和摘要。默认不改动任何内容。</p>
 
-        <div id="optimizeBody" class="optimize-body hidden">
+        <div class="appearance-field">
+          <div>
+            <label for="optimizeModeSelect">优化方式</label>
+            <span class="field-caption">本地规则即时完成；AI 模型效果更好</span>
+          </div>
+          <select id="optimizeModeSelect"></select>
+        </div>
+
+        <p id="optimizeModeHint" class="help-text"></p>
+
+        <div id="optimizeAiFields" class="optimize-ai-fields hidden">
+          <div class="token-row">
+            <div class="field-block grow">
+              <label for="optimizeApiBase">API 地址</label>
+              <input id="optimizeApiBase" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
+            </div>
+            <button id="grantOptimizeAccessButton" class="ghost-button" type="button">授权访问</button>
+          </div>
+          <p class="help-text">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
+          <div class="token-row">
+            <div class="field-block grow">
+              <label for="optimizeApiKey">API Key</label>
+              <input id="optimizeApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+            </div>
+            <button id="toggleOptimizeKeyButton" class="ghost-button" type="button">显示</button>
+          </div>
           <div class="appearance-field">
             <div>
-              <label for="optimizeModeSelect">优化方式</label>
-              <span class="field-caption">本地规则即时完成；AI 模型效果更好</span>
+              <label for="optimizeApiModel">模型</label>
+              <span class="field-caption">例如 gpt-4o-mini、gpt-4.1-mini</span>
             </div>
-            <select id="optimizeModeSelect"></select>
+            <input id="optimizeApiModel" type="text" autocomplete="off" spellcheck="false">
           </div>
-
-          <p id="optimizeModeHint" class="help-text"></p>
-
-          <div id="optimizeAiFields" class="optimize-ai-fields hidden">
-            <div class="token-row">
-              <div class="field-block grow">
-                <label for="optimizeApiBase">API 地址</label>
-                <input id="optimizeApiBase" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
-              </div>
-              <button id="grantOptimizeAccessButton" class="ghost-button" type="button">授权访问</button>
+          <div class="appearance-field">
+            <div>
+              <label for="optimizeApiLanguage">摘要语言</label>
+              <span class="field-caption">影响 AI 生成的摘要语言</span>
             </div>
-            <p class="help-text">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
-            <div class="token-row">
-              <div class="field-block grow">
-                <label for="optimizeApiKey">API Key</label>
-                <input id="optimizeApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
-              </div>
-              <button id="toggleOptimizeKeyButton" class="ghost-button" type="button">显示</button>
-            </div>
-            <div class="appearance-field">
-              <div>
-                <label for="optimizeApiModel">模型</label>
-                <span class="field-caption">例如 gpt-4o-mini、gpt-4.1-mini</span>
-              </div>
-              <input id="optimizeApiModel" type="text" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="appearance-field">
-              <div>
-                <label for="optimizeApiLanguage">简介语言</label>
-                <span class="field-caption">影响 AI 生成的简介语言</span>
-              </div>
-              <select id="optimizeApiLanguage"></select>
-            </div>
-            <p class="help-text">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你开启优化并收藏时才会发出。</p>
+            <select id="optimizeApiLanguage"></select>
           </div>
+          <p class="help-text">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你点击 ✨ 优化时才会发出。</p>
         </div>
       </section>
 

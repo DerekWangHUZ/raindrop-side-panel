@@ -292,18 +292,7 @@ button:disabled { opacity: .55; cursor: wait; transform: none; }
   padding-top: 30px;
   border-top: 1px solid var(--border);
 }
-.check-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 15px;
-  background: var(--field);
-  cursor: pointer;
-}
-.check-card input { margin-top: 2px; accent-color: var(--accent); }
-.check-card .field-label { cursor: pointer; }
-.optimize-body { display: flex; flex-direction: column; gap: 18px; }
+.optimize-intro { margin: -6px 0 0; }
 .optimize-ai-fields { display: flex; flex-direction: column; gap: 16px; }
 .field-block.grow { flex: 1; min-width: 0; }
 .field-block.grow label { margin-bottom: 8px; }

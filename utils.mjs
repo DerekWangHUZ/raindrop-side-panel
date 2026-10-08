@@ -38,16 +38,13 @@ export function normalizeSort(value) {
   return SORT_OPTIONS.some(option => option.id === candidate) ? candidate : DEFAULT_SORT;
 }
 
-// "off" is intentionally not offered as a mode: the settings checkbox already
-// controls on/off, and a mode that disabled the feature would hide the only
-// control able to switch it back on.
+// 优化只在用户点击按钮时触发，因此不再有启用开关，只需选择使用哪种方式。
 export const OPTIMIZE_MODES = [
   { id: 'local', label: '本地规则' },
   { id: 'ai', label: 'AI 模型' }
 ];
 
 export const DEFAULT_OPTIMIZE_SETTINGS = {
-  optimizeEnabled: false,
   optimizeMode: 'local',
   optimizeApiKey: '',
   optimizeApiModel: 'gpt-4o-mini',
@@ -65,13 +62,10 @@ export const TITLE_MAX_LENGTH = 1000;
 export const EXCERPT_MAX_LENGTH = 1000;
 
 export function normalizeOptimizeSettings(settings = {}) {
-  // A stored "off" predates the removal of that mode; fall back to "local".
-  const candidate = settings.optimizeMode === 'off' ? DEFAULT_OPTIMIZE_SETTINGS.optimizeMode : settings.optimizeMode;
-  const mode = OPTIMIZE_MODES.some(option => option.id === candidate)
-    ? candidate
+  const mode = OPTIMIZE_MODES.some(option => option.id === settings.optimizeMode)
+    ? settings.optimizeMode
     : DEFAULT_OPTIMIZE_SETTINGS.optimizeMode;
   return {
-    optimizeEnabled: Boolean(settings.optimizeEnabled),
     optimizeMode: mode,
     optimizeApiKey: String(settings.optimizeApiKey || '').trim(),
     optimizeApiModel: String(settings.optimizeApiModel || DEFAULT_OPTIMIZE_SETTINGS.optimizeApiModel).trim(),
@@ -284,6 +278,15 @@ const EXCERPT_NOISE = [
   /\s*(?:cookie|privacy) policy\.?$/i
 ];
 
+// Phrases that carry no information once stripped; keeping them would just
+// move noise around, and an empty result is what the caller already expects
+// when there was no description to begin with.
+function isMeaningfulExcerpt(text) {
+  const trimmed = String(text || '').replace(/[\s\p{P}]/gu, '');
+  if (!trimmed) return false;
+  return !/^(?:cookie|policy|privacy|share|read|more|continue|advertisement|sponsored|ad)$/i.test(trimmed);
+}
+
 export function optimizeExcerpt(excerpt, title = '') {
   const original = collapseWhitespace(excerpt);
   if (!original) return { excerpt: '', changed: false };
@@ -298,6 +301,10 @@ export function optimizeExcerpt(excerpt, title = '') {
   }
 
   next = collapseWhitespace(next);
+  // Stripping the noise above can leave nothing behind.
+  if (next && !isMeaningfulExcerpt(next)) {
+    return { excerpt: '', changed: next !== original };
+  }
   if (next.length > EXCERPT_MAX_LENGTH) {
     const cut = next.slice(0, EXCERPT_MAX_LENGTH);
     const lastSpace = cut.lastIndexOf(' ');
@@ -309,7 +316,11 @@ export function optimizeExcerpt(excerpt, title = '') {
 
 export function optimizeBookmarkFields({ title = '', excerpt = '', link = '' } = {}) {
   const nextTitle = optimizeTitle(title, link);
-  const nextExcerpt = optimizeExcerpt(excerpt, nextTitle.title);
+  // Compare against the title the user already had, not the cleaned-up one.
+  // On a new bookmark the title arrives as "Page - Site"; once the suffix is
+  // stripped it collides with the page description, which is usually exactly
+  // that same phrase. Treating that as a duplicate threw away a real excerpt.
+  const nextExcerpt = optimizeExcerpt(excerpt, title);
   return {
     title: nextTitle.title,
     excerpt: nextExcerpt.excerpt,
