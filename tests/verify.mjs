@@ -79,16 +79,15 @@ assert.strictEqual(normalizeSort('unsupported'), DEFAULT_SORT);
 // --- 自动优化：设置 ---------------------------------------------------------
 assert.deepStrictEqual(OPTIMIZE_MODES.map(mode => mode.id), ['local', 'ai']);
 assert.deepStrictEqual(OPTIMIZE_LANGUAGES.map(language => language.id), ['auto', 'zh', 'en']);
-assert.strictEqual(DEFAULT_OPTIMIZE_SETTINGS.optimizeEnabled, false);
 assert.strictEqual(DEFAULT_OPTIMIZE_SETTINGS.optimizeMode, 'local');
+// 优化改为按钮触发，不再有启用开关。
+assert.ok(!('optimizeEnabled' in DEFAULT_OPTIMIZE_SETTINGS));
+assert.ok(!('optimizeEnabled' in normalizeOptimizeSettings({ optimizeEnabled: true })));
 
-// 未启用时保持关闭，开启时跟随复选框。
-assert.strictEqual(normalizeOptimizeSettings({}).optimizeEnabled, false);
-assert.strictEqual(normalizeOptimizeSettings({ optimizeEnabled: true }).optimizeEnabled, true);
-// 旧的 "off" 值会迁移回默认模式，功能不会因此被永久锁死。
+// 旧存储中的 optimizeEnabled 被忽略；旧的 "off" 模式回落到默认模式。
 assert.deepStrictEqual(
   normalizeOptimizeSettings({ optimizeEnabled: true, optimizeMode: 'off' }),
-  normalizeOptimizeSettings({ optimizeEnabled: true })
+  normalizeOptimizeSettings({})
 );
 // 未知模式回退到默认模式。
 assert.strictEqual(normalizeOptimizeSettings({ optimizeMode: 'nope' }).optimizeMode, 'local');
@@ -144,6 +143,26 @@ assert.deepStrictEqual(optimizeExcerpt('same as title', 'Same As Title'), { exce
 assert.deepStrictEqual(optimizeExcerpt('', 'T'), { excerpt: '', changed: false });
 assert.strictEqual(optimizeExcerpt('a '.repeat(900), '').excerpt.length <= EXCERPT_MAX_LENGTH, true);
 
+// 剥掉噪声后不剩任何有效内容时，结果为空而不是残留噪声。
+for (const noise of ['Share this:', 'Read more', 'Advertisement', 'Cookie policy', 'Ad:']) {
+  assert.strictEqual(optimizeExcerpt(noise, 'A Real Title').excerpt, '', `纯噪声：${noise}`);
+}
+// --- 回归：新建时描述与裸标题相同不应被误删 -------------------------------
+// 页面标题带站点名后缀，描述往往正是去掉后缀后的那句话。
+const createCase = optimizeBookmarkFields({
+  title: '深入理解 CSS Grid - 少数派',
+  excerpt: '深入理解 CSS Grid',
+  link: 'https://sspai.com/post/12345'
+});
+assert.strictEqual(createCase.title, '深入理解 CSS Grid');
+assert.strictEqual(createCase.excerpt, '深入理解 CSS Grid', '新建时描述不应被当成重复标题删除');
+
+// 编辑场景下描述确实等于标题时，仍然要去重。
+assert.strictEqual(
+  optimizeBookmarkFields({ title: '深入理解 Grid', excerpt: '深入理解 Grid', link: 'https://sspai.com/p' }).excerpt,
+  ''
+);
+
 const combined = optimizeBookmarkFields({
   title: 'Foo - Bar',
   link: 'https://blog.bar.com',
@@ -167,5 +186,72 @@ assert.strictEqual(extractJsonObject('{ broken'), null);
 
 assert.strictEqual(clampLength('  spaced   out  ', 100), 'spaced out');
 assert.strictEqual(clampLength('abcdef', 3), 'abc');
+
+// --- 自动优化：optimizeFields 纯函数行为 ------------------------------------
+// optimizer.js 只用到 chrome.storage 与 fetch，打桩后可直接引入。
+globalThis.chrome = {
+  storage: { local: { async get() { return {}; }, async set() {} } }
+};
+const { optimizeFields } = await import('../optimizer.js');
+
+const LOCAL = { optimizeMode: 'local' };
+const AI = {
+  optimizeMode: 'ai',
+  optimizeApiKey: 'k',
+  optimizeApiBase: 'https://api.openai.com/v1',
+  optimizeApiModel: 'm',
+  optimizeApiLanguage: 'zh'
+};
+
+assert.deepStrictEqual(
+  await optimizeFields(
+    { link: 'https://blog.example.com/p', title: 'Foo - Example', excerpt: 'Share this: hi' },
+    { settings: LOCAL }
+  ),
+  { title: 'Foo', excerpt: 'hi', changed: true }
+);
+assert.deepStrictEqual(
+  await optimizeFields({ link: 'https://vitejs.dev/', title: 'Vite', excerpt: 'Nice.' }, { settings: LOCAL }),
+  { title: 'Vite', excerpt: 'Nice.', changed: false }
+);
+assert.deepStrictEqual(
+  await optimizeFields({ link: '' }, { settings: LOCAL }),
+  { title: '', excerpt: '', changed: false }
+);
+// 新建收藏时只有标题，优化不应凭空造出摘要。
+assert.deepStrictEqual(
+  await optimizeFields({ link: 'https://github.com/a/b', title: 'Some repo - GitHub' }, { settings: LOCAL }),
+  { title: 'Some repo', excerpt: '', changed: true }
+);
+
+// AI：正常、空回复保留原值、不可解析、缺 Key。
+const aiReply = original => {
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    async json() { return { choices: [{ message: { content: original } }] }; }
+  });
+};
+
+aiReply('{"title":"优化标题","excerpt":"优化摘要。"}');
+assert.deepStrictEqual(
+  await optimizeFields({ link: 'https://a.com/x', title: 'T', excerpt: 'E' }, { settings: AI }),
+  { title: '优化标题', excerpt: '优化摘要。', changed: true }
+);
+aiReply('{"title":"","excerpt":""}');
+assert.deepStrictEqual(
+  await optimizeFields({ link: 'https://a.com/x', title: 'T', excerpt: 'E' }, { settings: AI }),
+  { title: 'T', excerpt: 'E', changed: false }
+);
+aiReply('not json');
+await assert.rejects(
+  () => optimizeFields({ link: 'https://a.com/x', title: 'T', excerpt: 'E' }, { settings: AI }),
+  /AI 未返回可解析的 JSON/
+);
+await assert.rejects(
+  () => optimizeFields({ link: 'https://a.com/x', title: 'T', excerpt: 'E' },
+    { settings: { ...AI, optimizeApiKey: '' } }),
+  /尚未填写 API Key/
+);
 
 console.log('All utility checks passed.');

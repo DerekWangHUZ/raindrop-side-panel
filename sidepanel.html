@@ -102,10 +102,13 @@
       <label class="field-label" for="editorLinkInput">链接</label>
       <input id="editorLinkInput" class="field-input" type="url" required>
       <label class="field-label" for="editorTitleInput">标题</label>
-      <input id="editorTitleInput" class="field-input" type="text" maxlength="1000" placeholder="可留空">
+      <div class="field-inline">
+        <input id="editorTitleInput" class="field-input" type="text" maxlength="1000" placeholder="可留空">
+        <button id="optimizeEditorButton" class="inline-optimize" type="button" title="优化书签名和摘要" aria-label="优化书签名和摘要">✨</button>
+      </div>
       <label class="field-label" for="editorCollectionSelect">收藏夹</label>
       <select id="editorCollectionSelect" class="field-input" required></select>
-      <details class="advanced-fields">
+      <details id="editorAdvancedFields" class="advanced-fields">
         <summary>更多字段</summary>
         <label class="field-label" for="editorTagsInput">标签</label>
         <input id="editorTagsInput" class="field-input" type="text" placeholder="用逗号分隔">

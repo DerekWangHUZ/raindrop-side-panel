@@ -20,7 +20,8 @@ import {
   SORT_OPTIONS,
   normalizeSort
 } from './utils.mjs';
-import { optimizeCreatedRaindrop } from './optimizer.js';
+import { optimizeFields } from './optimizer.js';
+import { readActivePageMeta, requestPageAccess } from './page-meta.js';
 import { initTheme } from './theme.js';
 
 const els = {
@@ -58,6 +59,8 @@ const els = {
   editorTagsInput: document.querySelector('#editorTagsInput'),
   editorNoteInput: document.querySelector('#editorNoteInput'),
   editorExcerptInput: document.querySelector('#editorExcerptInput'),
+  editorAdvancedFields: document.querySelector('#editorAdvancedFields'),
+  optimizeEditorButton: document.querySelector('#optimizeEditorButton'),
   editorError: document.querySelector('#editorError'),
   editorCancelButton: document.querySelector('#editorCancelButton'),
   editorSubmitButton: document.querySelector('#editorSubmitButton'),
@@ -404,13 +407,23 @@ function createBookmarkCard(item) {
   editButton.title = '编辑';
   editButton.textContent = '✎';
   editButton.addEventListener('click', event => { event.stopPropagation(); openEditDialog(item); });
+  const optimizeButton = document.createElement('button');
+  optimizeButton.className = 'card-action';
+  optimizeButton.type = 'button';
+  optimizeButton.title = '优化书签名和摘要';
+  optimizeButton.setAttribute('aria-label', '优化书签名和摘要');
+  optimizeButton.textContent = '✨';
+  optimizeButton.addEventListener('click', async event => {
+    event.stopPropagation();
+    await optimizeBookmarkFromCard(item, optimizeButton);
+  });
   const deleteButton = document.createElement('button');
   deleteButton.className = 'card-action danger-text';
   deleteButton.type = 'button';
   deleteButton.title = '删除';
   deleteButton.textContent = '×';
   deleteButton.addEventListener('click', async event => { event.stopPropagation(); await removeSingleBookmark(item); });
-  actions.append(editButton, deleteButton);
+  actions.append(editButton, optimizeButton, deleteButton);
   card.append(select, visual, main, actions);
 
   const open = () => { if (item.link) chrome.tabs.create({ url: item.link }); };
@@ -523,6 +536,8 @@ function openEditor({ mode, item = {} }) {
     ? String(desired)
     : '-1';
   els.editorError.textContent = '';
+  els.optimizeEditorButton.disabled = false;
+  els.optimizeEditorButton.textContent = '✨';
   els.editorDialog.showModal();
   els.editorLinkInput.focus();
 }
@@ -548,15 +563,82 @@ async function openEditDialog(item) {
   }
 }
 
-async function reportOptimization(result) {
-  if (!result) return;
-  if (result.status === 'failed') {
-    showToast(`书签已保存，但优化失败：${result.message}`, 'error');
-    return;
+/**
+ * Optimize the title and excerpt currently in the editor and write the result
+ * back into the form. Nothing is sent to Raindrop until the user saves.
+ *
+ * Page metadata is only used as input, never written into the title field.
+ * Writing the tab title back would leave the field holding "Page - Site" while
+ * the rules below strip that suffix, which made a description that repeats the
+ * bare title look like a duplicate and get cleared.
+ */
+async function runEditorOptimization() {
+  const link = els.editorLinkInput.value.trim();
+  if (!validHttpUrl(link)) return setEditorError('请先填写有效的链接，再进行优化。');
+
+  const button = els.optimizeEditorButton;
+  button.disabled = true;
+  button.textContent = '…';
+  setEditorError('');
+
+  try {
+    // The editor usually already holds the tab title, so only borrow one when
+    // the field is empty (a context-menu save on a link, for example).
+    let title = els.editorTitleInput.value.trim();
+    let excerpt = els.editorExcerptInput.value;
+    let accessDenied = false;
+
+    // A new bookmark has no metadata yet, so borrow it from the open tab.
+    if (els.editorForm.dataset.mode !== 'edit' && (!title || !excerpt)) {
+      // Must be requested straight from the click handler: the permission
+      // prompt only opens while the user gesture is still active.
+      const granted = await requestPageAccess(link);
+      const meta = granted
+        ? await readActivePageMeta(link)
+        : { title: '', description: '', denied: true };
+
+      if (!title) title = meta.title;
+      if (!excerpt) excerpt = meta.description;
+      accessDenied = Boolean(meta.denied);
+    }
+
+    const result = await optimizeFields({ link, title, excerpt });
+    if (result.title) els.editorTitleInput.value = result.title;
+    // Make the optimized excerpt visible instead of leaving it folded away.
+    if (result.excerpt !== excerpt) els.editorAdvancedFields.open = true;
+    els.editorExcerptInput.value = result.excerpt;
+
+    if (accessDenied) showToast('未授权访问该网页，已仅优化书签名', 'error');
+    else showToast(result.changed ? '已优化书签名和摘要' : '没有需要优化的地方');
+  } catch (error) {
+    setEditorError(error.message || '优化失败');
+  } finally {
+    button.disabled = false;
+    button.textContent = '✨';
   }
-  if (result.status !== 'optimized') return;
-  showToast('已优化书签名和简介');
-  await refreshAfterMutation().catch(() => {});
+}
+
+/** Optimize a bookmark straight from its card, then refresh the list. */
+async function optimizeBookmarkFromCard(item, button) {
+  button.disabled = true;
+  try {
+    const result = await optimizeFields({
+      link: item.link,
+      title: item.title,
+      excerpt: item.excerpt
+    });
+    if (!result.changed) {
+      showToast('没有需要优化的地方');
+      return;
+    }
+    await updateRaindrop(item._id, { title: result.title, excerpt: result.excerpt });
+    showToast('已优化书签名和摘要');
+    await refreshAfterMutation().catch(() => {});
+  } catch (error) {
+    showToast(error.message || '优化失败', 'error');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function submitEditor(event) {
@@ -579,21 +661,16 @@ async function submitEditor(event) {
       excerpt: els.editorExcerptInput.value
     };
 
-    let created = null;
     if (mode === 'edit') {
       await updateRaindrop(els.editorForm.dataset.id, fields);
     } else {
-      created = await createRaindrop(fields);
+      await createRaindrop(fields);
       await chrome.storage.local.set({ lastCollectionId: collectionId });
     }
 
     closeDialog(els.editorDialog);
     showToast(mode === 'edit' ? '书签已更新' : `已保存到「${collectionName(collectionId)}」`);
     await refreshAfterMutation();
-
-    // Optimization is a follow-up pass: the bookmark is already saved, so a
-    // slow or failed optimize must never block or undo the save.
-    if (created) optimizeCreatedRaindrop(created).then(reportOptimization).catch(() => {});
   } catch (error) {
     setEditorError(error.message || '保存失败');
   } finally {
@@ -825,6 +902,7 @@ els.searchInput.addEventListener('input', () => {
 });
 
 els.editorForm.addEventListener('submit', submitEditor);
+els.optimizeEditorButton.addEventListener('click', runEditorOptimization);
 els.editorCloseButton.addEventListener('click', () => closeDialog(els.editorDialog));
 els.editorCancelButton.addEventListener('click', () => closeDialog(els.editorDialog));
 els.bulkAddForm.addEventListener('submit', submitBulkAdd);

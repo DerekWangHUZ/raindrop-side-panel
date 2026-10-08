@@ -231,6 +231,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .field-input:focus { border-color: var(--accent); background: var(--panel-solid); box-shadow: 0 0 0 4px var(--accent-soft); }
 textarea.field-input { min-height: 58px; resize: vertical; }
 .code-input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
+.field-inline { display: flex; align-items: center; gap: 6px; }
+.field-inline .field-input { flex: 1; min-width: 0; }
+.inline-optimize {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--field);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.inline-optimize:hover { border-color: var(--accent); background: var(--accent-soft); }
+.inline-optimize:active { transform: scale(.94); }
+.inline-optimize:disabled { cursor: wait; opacity: .55; }
 .advanced-fields { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
 .advanced-fields summary { margin-bottom: 4px; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 700; }
 .check-field { display: flex; align-items: center; gap: 7px; margin-top: 4px; font-size: 12px; font-weight: 700; }

@@ -1,4 +1,3 @@
-import { getRaindrop, updateRaindrop } from './api.js';
 import {
   DEFAULT_OPTIMIZE_SETTINGS,
   EXCERPT_MAX_LENGTH,
@@ -10,7 +9,6 @@ import {
 } from './utils.mjs';
 
 const OPTIMIZE_STORAGE_KEYS = [
-  'optimizeEnabled',
   'optimizeMode',
   'optimizeApiKey',
   'optimizeApiModel',
@@ -18,10 +16,6 @@ const OPTIMIZE_STORAGE_KEYS = [
   'optimizeApiLanguage'
 ];
 
-// Raindrop parses link metadata in the background, so the description and cover
-// are not present on the create response. Wait for them before optimizing.
-const PARSE_POLL_INTERVAL = 1200;
-const PARSE_POLL_ATTEMPTS = 6;
 const AI_REQUEST_TIMEOUT = 30000;
 
 export async function loadOptimizeSettings() {
@@ -33,7 +27,6 @@ export async function saveOptimizeSettings(changes = {}) {
   const current = await loadOptimizeSettings();
   const next = normalizeOptimizeSettings({ ...current, ...changes });
   await chrome.storage.local.set({
-    optimizeEnabled: next.optimizeEnabled,
     optimizeMode: next.optimizeMode,
     optimizeApiKey: next.optimizeApiKey,
     optimizeApiModel: next.optimizeApiModel,
@@ -41,27 +34,6 @@ export async function saveOptimizeSettings(changes = {}) {
     optimizeApiLanguage: next.optimizeApiLanguage
   });
   return next;
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Poll until Raindrop has filled in the metadata it fetches from the page.
- * Only `excerpt` and `cover` count: `type` is already populated on the create
- * response, so including it would make every poll succeed immediately.
- * Returns the freshest item, or null when the page never produced one.
- */
-async function waitForParsedItem(raindropId) {
-  let item = null;
-  for (let attempt = 0; attempt < PARSE_POLL_ATTEMPTS; attempt += 1) {
-    item = await getRaindrop(raindropId);
-    const parsed = Boolean(item?.excerpt || item?.cover);
-    if (parsed || attempt === PARSE_POLL_ATTEMPTS - 1) return item;
-    await delay(PARSE_POLL_INTERVAL);
-  }
-  return item;
 }
 
 function languageLabel(id) {
@@ -72,6 +44,8 @@ function languageLabel(id) {
 
 async function requestAiRewrite(settings, fields) {
   const base = settings.optimizeApiBase.replace(/\/+$/, '');
+  if (!settings.optimizeApiKey) throw new Error('尚未填写 API Key');
+
   // Without a timeout a hung endpoint would leave this promise pending forever.
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT);
@@ -131,64 +105,63 @@ async function requestAiRewrite(settings, fields) {
   return extractJsonObject(content);
 }
 
-function runLocalOptimization(item) {
-  const optimized = optimizeBookmarkFields({
-    title: item.title,
-    excerpt: item.excerpt,
-    link: item.link
-  });
+function domainFromLink(link) {
+  try {
+    return new URL(link).hostname.replace(/^www\./i, '');
+  } catch (_) {
+    return '';
+  }
+}
+
+function runLocalOptimization({ link, title, excerpt }) {
+  const optimized = optimizeBookmarkFields({ title, excerpt, link });
   return {
-    updates: {
-      title: clampLength(optimized.title, TITLE_MAX_LENGTH),
-      excerpt: clampLength(optimized.excerpt, EXCERPT_MAX_LENGTH)
-    },
+    title: clampLength(optimized.title, TITLE_MAX_LENGTH),
+    excerpt: clampLength(optimized.excerpt, EXCERPT_MAX_LENGTH),
     changed: optimized.changed
   };
 }
 
-async function runAiOptimization(settings, item) {
+async function runAiOptimization(settings, { link, title, excerpt }) {
   const rewrite = await requestAiRewrite(settings, {
-    link: item.link,
-    domain: item.domain,
-    title: item.title,
-    excerpt: item.excerpt
+    link,
+    domain: domainFromLink(link),
+    title,
+    excerpt
   });
   if (!rewrite) throw new Error('AI 未返回可解析的 JSON');
 
-  const updates = {
+  const result = {
     title: clampLength(rewrite.title, TITLE_MAX_LENGTH),
     excerpt: clampLength(rewrite.excerpt, EXCERPT_MAX_LENGTH)
   };
-  // An empty rewrite would erase good metadata; keep whatever the page provided.
-  if (!updates.title) updates.title = item.title;
-  if (!updates.excerpt) updates.excerpt = item.excerpt;
+  // An empty rewrite would erase good metadata; keep whatever we started with.
+  if (!result.title) result.title = title;
+  if (!result.excerpt) result.excerpt = excerpt;
 
-  return { updates, changed: updates.title !== item.title || updates.excerpt !== item.excerpt };
+  return { ...result, changed: result.title !== title || result.excerpt !== excerpt };
 }
 
 /**
- * Optimize a freshly created bookmark. Never throws: a failed optimization must
- * not turn a successful save into an error.
+ * Optimize title and excerpt with the configured mode. Returns the suggested
+ * values plus a `changed` flag; it never writes to Raindrop, so the caller
+ * stays in control of when the bookmark is updated.
  */
-export async function optimizeCreatedRaindrop(raindrop) {
-  if (!raindrop?._id) return { status: 'skipped', reason: 'no-id' };
+export async function optimizeFields(input = {}, options = {}) {
+  const settings = options.settings || await loadOptimizeSettings();
+  const source = {
+    link: String(input.link || '').trim(),
+    title: String(input.title || '').trim(),
+    excerpt: String(input.excerpt || '')
+  };
 
-  try {
-    const settings = await loadOptimizeSettings();
-    if (!settings.optimizeEnabled) return { status: 'skipped', reason: 'disabled' };
-
-    const item = await waitForParsedItem(raindrop._id);
-    if (!item?.link) return { status: 'skipped', reason: 'no-item' };
-
-    const result = settings.optimizeMode === 'ai'
-      ? await runAiOptimization(settings, item)
-      : runLocalOptimization(item);
-
-    if (!result.changed) return { status: 'unchanged' };
-    await updateRaindrop(raindrop._id, result.updates);
-    return { status: 'optimized' };
-  } catch (error) {
-    console.error('书签优化失败：', error);
-    return { status: 'failed', message: error.message || '优化失败' };
+  if (!source.title && !source.excerpt) {
+    return { title: source.title, excerpt: source.excerpt, changed: false };
   }
+
+  const result = settings.optimizeMode === 'ai'
+    ? await runAiOptimization(settings, source)
+    : runLocalOptimization(source);
+
+  return { ...result, changed: result.changed };
 }
