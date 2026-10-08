@@ -3,7 +3,7 @@
   "minimum_chrome_version": "116",
   "name": "Raindrop Side Panel",
   "short_name": "Raindrop Panel",
-  "version": "4",
+  "version": "5",
   "description": "在 Chromium 侧边栏中浏览、搜索并快速保存 Raindrop.io 书签。",
   "permissions": [
     "sidePanel",
@@ -13,6 +13,9 @@
   ],
   "host_permissions": [
     "https://api.raindrop.io/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",
