@@ -20,6 +20,7 @@ import {
   SORT_OPTIONS,
   normalizeSort
 } from './utils.mjs';
+import { optimizeCreatedRaindrop } from './optimizer.js';
 import { initTheme } from './theme.js';
 
 const els = {
@@ -547,6 +548,17 @@ async function openEditDialog(item) {
   }
 }
 
+async function reportOptimization(result) {
+  if (!result) return;
+  if (result.status === 'failed') {
+    showToast(`书签已保存，但优化失败：${result.message}`, 'error');
+    return;
+  }
+  if (result.status !== 'optimized') return;
+  showToast('已优化书签名和简介');
+  await refreshAfterMutation().catch(() => {});
+}
+
 async function submitEditor(event) {
   event.preventDefault();
   const mode = els.editorForm.dataset.mode;
@@ -566,14 +578,22 @@ async function submitEditor(event) {
       note: els.editorNoteInput.value,
       excerpt: els.editorExcerptInput.value
     };
-    if (mode === 'edit') await updateRaindrop(els.editorForm.dataset.id, fields);
-    else {
-      await createRaindrop(fields);
+
+    let created = null;
+    if (mode === 'edit') {
+      await updateRaindrop(els.editorForm.dataset.id, fields);
+    } else {
+      created = await createRaindrop(fields);
       await chrome.storage.local.set({ lastCollectionId: collectionId });
     }
+
     closeDialog(els.editorDialog);
     showToast(mode === 'edit' ? '书签已更新' : `已保存到「${collectionName(collectionId)}」`);
     await refreshAfterMutation();
+
+    // Optimization is a follow-up pass: the bookmark is already saved, so a
+    // slow or failed optimize must never block or undo the save.
+    if (created) optimizeCreatedRaindrop(created).then(reportOptimization).catch(() => {});
   } catch (error) {
     setEditorError(error.message || '保存失败');
   } finally {

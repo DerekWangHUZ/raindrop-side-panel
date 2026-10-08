@@ -1,6 +1,18 @@
 import { validateToken } from './api.js';
 import { initTheme, saveThemeSettings } from './theme.js';
-import { DEFAULT_THEME_SETTINGS, THEME_COLORS, THEME_MODES } from './utils.mjs';
+import { loadOptimizeSettings, saveOptimizeSettings } from './optimizer.js';
+import {
+  DEFAULT_THEME_SETTINGS,
+  OPTIMIZE_LANGUAGES,
+  OPTIMIZE_MODES,
+  THEME_COLORS,
+  THEME_MODES
+} from './utils.mjs';
+
+const MODE_HINTS = {
+  local: '在本地用规则整理书签名和简介：不额外联网，也没有额外费用。',
+  ai: '收藏后调用你配置的模型重写书签名和简介，需要 API Key，并且会产生相应费用。'
+};
 
 const tokenInput = document.querySelector('#tokenInput');
 const toggleTokenButton = document.querySelector('#toggleTokenButton');
@@ -12,6 +24,17 @@ const accountName = document.querySelector('#accountName');
 const accountEmail = document.querySelector('#accountEmail');
 const themeModeSelect = document.querySelector('#themeModeSelect');
 const themeColorPicker = document.querySelector('#themeColorPicker');
+const optimizeEnabled = document.querySelector('#optimizeEnabled');
+const optimizeBody = document.querySelector('#optimizeBody');
+const optimizeModeSelect = document.querySelector('#optimizeModeSelect');
+const optimizeModeHint = document.querySelector('#optimizeModeHint');
+const optimizeAiFields = document.querySelector('#optimizeAiFields');
+const optimizeApiBase = document.querySelector('#optimizeApiBase');
+const grantOptimizeAccessButton = document.querySelector('#grantOptimizeAccessButton');
+const optimizeApiKey = document.querySelector('#optimizeApiKey');
+const toggleOptimizeKeyButton = document.querySelector('#toggleOptimizeKeyButton');
+const optimizeApiModel = document.querySelector('#optimizeApiModel');
+const optimizeApiLanguage = document.querySelector('#optimizeApiLanguage');
 
 function setStatus(message, type = '') {
   statusMessage.textContent = message;
@@ -83,6 +106,47 @@ async function loadAppearance() {
   renderThemeColors(settings.themeColor);
 }
 
+async function grantOptimizeAccess() {
+  const apiBase = optimizeApiBase.value.trim();
+  let origin = '';
+  try {
+    origin = new URL(apiBase).origin;
+  } catch (_) {
+    setStatus('请先填写有效的 API 地址。', 'error');
+    return;
+  }
+  if (origin === 'null') {
+    setStatus('该 API 地址不是有效的 HTTP/HTTPS 地址。', 'error');
+    return;
+  }
+
+  try {
+    // Must run inside this click's user gesture, hence the explicit button.
+    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+    setStatus(granted
+      ? `已授权访问 ${origin}。`
+      : `未获得 ${origin} 的访问授权，AI 优化将无法请求该地址。`, granted ? 'success' : 'error');
+  } catch (error) {
+    setStatus(`请求授权失败：${error.message}`, 'error');
+  }
+}
+
+function renderOptimize(settings) {
+  optimizeEnabled.checked = settings.optimizeEnabled;
+  optimizeBody.classList.toggle('hidden', !settings.optimizeEnabled);
+  optimizeModeSelect.value = settings.optimizeMode;
+  optimizeModeHint.textContent = MODE_HINTS[settings.optimizeMode] || '';
+  optimizeAiFields.classList.toggle('hidden', settings.optimizeMode !== 'ai');
+  optimizeApiBase.value = settings.optimizeApiBase;
+  optimizeApiKey.value = settings.optimizeApiKey;
+  optimizeApiModel.value = settings.optimizeApiModel;
+  optimizeApiLanguage.value = settings.optimizeApiLanguage;
+}
+
+async function loadOptimize() {
+  renderOptimize(await loadOptimizeSettings());
+}
+
 toggleTokenButton.addEventListener('click', () => {
   const showing = tokenInput.type === 'text';
   tokenInput.type = showing ? 'password' : 'text';
@@ -122,5 +186,43 @@ clearButton.addEventListener('click', async () => {
 });
 
 themeModeSelect.addEventListener('change', () => updateAppearance({ themeMode: themeModeSelect.value }));
+
+optimizeEnabled.addEventListener('change', async () => {
+  const next = await saveOptimizeSettings({ optimizeEnabled: optimizeEnabled.checked });
+  renderOptimize(next);
+});
+
+optimizeModeSelect.addEventListener('change', async () => {
+  const next = await saveOptimizeSettings({ optimizeMode: optimizeModeSelect.value });
+  renderOptimize(next);
+});
+
+optimizeApiLanguage.addEventListener('change', () => saveOptimizeSettings({
+  optimizeApiLanguage: optimizeApiLanguage.value
+}));
+
+for (const [input, key] of [
+  [optimizeApiBase, 'optimizeApiBase'],
+  [optimizeApiKey, 'optimizeApiKey'],
+  [optimizeApiModel, 'optimizeApiModel']
+]) {
+  input.addEventListener('change', async () => {
+    const next = await saveOptimizeSettings({ [key]: input.value });
+    renderOptimize(next);
+  });
+}
+
+grantOptimizeAccessButton.addEventListener('click', grantOptimizeAccess);
+
+toggleOptimizeKeyButton.addEventListener('click', () => {
+  const showing = optimizeApiKey.type === 'text';
+  optimizeApiKey.type = showing ? 'password' : 'text';
+  toggleOptimizeKeyButton.textContent = showing ? '显示' : '隐藏';
+});
+
+optimizeModeSelect.replaceChildren(...OPTIMIZE_MODES.map(mode => new Option(mode.label, mode.id)));
+optimizeApiLanguage.replaceChildren(...OPTIMIZE_LANGUAGES.map(item => new Option(item.label, item.id)));
+
 loadAppearance().catch(error => console.error('外观设置加载失败：', error));
+loadOptimize().catch(error => console.error('自动优化设置加载失败：', error));
 loadSavedSettings();

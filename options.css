@@ -217,6 +217,20 @@ button:disabled { opacity: .55; cursor: wait; transform: none; }
   border-radius: 15px;
   background: var(--field);
 }
+.appearance-field input[type="text"], .appearance-field input[type="url"] {
+  min-width: 190px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 0 10px;
+  background: var(--panel-solid);
+  color: var(--text);
+  outline: 0;
+}
+.appearance-field input[type="text"]:focus, .appearance-field input[type="url"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--soft);
+}
 .appearance-field label, .field-label { display: block; font-size: 14px; font-weight: 700; }
 .field-caption {
   display: block;
@@ -273,6 +287,44 @@ button:disabled { opacity: .55; cursor: wait; transform: none; }
 .theme-swatch.selected .swatch-check { opacity: 1; transform: scale(1); }
 .theme-swatch[data-color="gray"] .swatch-check { color: #1c1c1e; text-shadow: none; }
 
+.optimize-section {
+  margin-top: 34px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border);
+}
+.check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 15px;
+  background: var(--field);
+  cursor: pointer;
+}
+.check-card input { margin-top: 2px; accent-color: var(--accent); }
+.check-card .field-label { cursor: pointer; }
+.optimize-body { display: flex; flex-direction: column; gap: 18px; }
+.optimize-ai-fields { display: flex; flex-direction: column; gap: 16px; }
+.field-block.grow { flex: 1; min-width: 0; }
+.field-block.grow label { margin-bottom: 8px; }
+.token-row .field-block input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 0 13px;
+  background: var(--panel-solid);
+  color: var(--text);
+  outline: 0;
+  transition: border-color .22s ease, box-shadow .22s ease, background .22s ease;
+}
+.token-row .field-block input:focus {
+  border-color: var(--accent);
+  background: var(--panel-solid);
+  box-shadow: 0 0 0 4px var(--soft);
+}
+#optimizeModeHint { margin: -4px 0 0; }
+
 .guide {
   margin-top: 34px;
   padding-top: 28px;
@@ -306,5 +358,6 @@ button:disabled { opacity: .55; cursor: wait; transform: none; }
   .token-row input, .ghost-button, .actions button { width: 100%; }
   .appearance-field { grid-template-columns: 1fr; align-items: start; }
   .appearance-field select { width: 100%; }
+  .appearance-field input[type="text"], .appearance-field input[type="url"] { width: 100%; min-width: 0; }
   .theme-color-picker { justify-content: flex-start; }
 }
