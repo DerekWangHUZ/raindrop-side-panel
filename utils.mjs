@@ -38,7 +38,7 @@ export function normalizeSort(value) {
   return SORT_OPTIONS.some(option => option.id === candidate) ? candidate : DEFAULT_SORT;
 }
 
-// 优化只在用户点击按钮时触发，因此不再有启用开关，只需选择使用哪种方式。
+// 优化只在用户点击按钮时触发，只需选择使用哪种方式。
 export const OPTIMIZE_MODES = [
   { id: 'local', label: '本地规则' },
   { id: 'ai', label: 'AI 模型' }
@@ -65,11 +65,18 @@ export function normalizeOptimizeSettings(settings = {}) {
   const mode = OPTIMIZE_MODES.some(option => option.id === settings.optimizeMode)
     ? settings.optimizeMode
     : DEFAULT_OPTIMIZE_SETTINGS.optimizeMode;
+  // An explicitly emptied API base must stay empty: silently restoring the
+  // default endpoint after the user cleared the field would send requests
+  // (and the API key) to a server they deliberately removed.
+  const rawApiBase = settings.optimizeApiBase;
+  const optimizeApiBase = rawApiBase === undefined || rawApiBase === null
+    ? DEFAULT_OPTIMIZE_SETTINGS.optimizeApiBase
+    : String(rawApiBase).trim();
   return {
     optimizeMode: mode,
     optimizeApiKey: String(settings.optimizeApiKey || '').trim(),
     optimizeApiModel: String(settings.optimizeApiModel || DEFAULT_OPTIMIZE_SETTINGS.optimizeApiModel).trim(),
-    optimizeApiBase: String(settings.optimizeApiBase || DEFAULT_OPTIMIZE_SETTINGS.optimizeApiBase).trim(),
+    optimizeApiBase,
     optimizeApiLanguage: OPTIMIZE_LANGUAGES.some(option => option.id === settings.optimizeApiLanguage)
       ? settings.optimizeApiLanguage
       : DEFAULT_OPTIMIZE_SETTINGS.optimizeApiLanguage
@@ -79,6 +86,15 @@ export function normalizeOptimizeSettings(settings = {}) {
 export function normalizeTags(value) {
   const values = Array.isArray(value) ? value : String(value || '').split(',');
   return [...new Set(values.map(tag => String(tag).trim()).filter(Boolean))];
+}
+
+function parseHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return /^https?:$/i.test(url.protocol) ? url : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 export function parseBulkLines(input) {
@@ -92,19 +108,21 @@ export function parseBulkLines(input) {
 
     let title = '';
     let link = line;
-    const titledLine = line.match(/^(.*?)\s*\|\s*(https?:\/\/\S+)$/i);
-    if (titledLine) {
-      title = titledLine[1].trim();
-      link = titledLine[2].trim();
-    } else if (line.includes('|')) {
-      errors.push({ line: index + 1, message: '应为“标题 | URL”，且 URL 必须是 HTTP/HTTPS 地址' });
-      return;
+
+    // A URL may itself contain "|" (https://example.com/a|b), so the pipe is
+    // only treated as a title separator when the whole line is not a URL.
+    if (!parseHttpUrl(line)) {
+      const titledLine = line.match(/^(.*?)\s*\|\s*(https?:\/\/\S+)$/i);
+      if (titledLine) {
+        title = titledLine[1].trim();
+        link = titledLine[2].trim();
+      } else if (line.includes('|')) {
+        errors.push({ line: index + 1, message: '应为“标题 | URL”，且 URL 必须是 HTTP/HTTPS 地址' });
+        return;
+      }
     }
 
-    try {
-      const url = new URL(link);
-      if (!/^https?:$/i.test(url.protocol)) throw new Error('protocol');
-    } catch (_) {
+    if (!parseHttpUrl(link)) {
       errors.push({ line: index + 1, message: 'URL 无效，仅支持 HTTP/HTTPS 地址' });
       return;
     }
@@ -319,7 +337,8 @@ export function optimizeBookmarkFields({ title = '', excerpt = '', link = '' } =
   // Compare against the title the user already had, not the cleaned-up one.
   // On a new bookmark the title arrives as "Page - Site"; once the suffix is
   // stripped it collides with the page description, which is usually exactly
-  // that same phrase. Treating that as a duplicate threw away a real excerpt.
+  // that same phrase. Treating that as a duplicate would throw away a real
+  // excerpt.
   const nextExcerpt = optimizeExcerpt(excerpt, title);
   return {
     title: nextTitle.title,

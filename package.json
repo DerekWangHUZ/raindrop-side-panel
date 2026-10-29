@@ -1,0 +1,13 @@
+{
+  "name": "raindrop-side-panel",
+  "version": "7.0.0",
+  "private": true,
+  "type": "module",
+  "description": "在 Chromium 侧边栏中浏览、搜索并快速保存 Raindrop.io 书签。",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.11"
+  }
+}

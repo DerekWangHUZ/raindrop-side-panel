@@ -1,12 +1,15 @@
 import {
+  clearUserCache,
   createRaindrop,
   createRaindrops,
   deleteRaindrop,
   deleteRaindrops,
+  getCollections,
   getCollectionData,
   getRaindrop,
   getRaindrops,
   getStoredToken,
+  getUser,
   updateRaindrop,
   updateRaindrops
 } from './api.js';
@@ -111,7 +114,6 @@ const state = {
   searchTimer: null,
   requestSequence: 0,
   ready: false,
-  pendingSaveWaiting: false,
   confirmResolver: null
 };
 
@@ -440,8 +442,15 @@ function createBookmarkCard(item) {
   return card;
 }
 
-function renderBookmarks() {
-  els.bookmarkList.replaceChildren(...state.items.map(createBookmarkCard));
+function renderBookmarks({ append = false } = {}) {
+  const renderedCount = els.bookmarkList.childElementCount;
+  if (append && renderedCount > 0 && renderedCount <= state.items.length) {
+    // "Load more" only appends the newly fetched page; rebuilding every card
+    // re-decodes cover images and can jump the scroll position.
+    els.bookmarkList.append(...state.items.slice(renderedCount).map(createBookmarkCard));
+  } else {
+    els.bookmarkList.replaceChildren(...state.items.map(createBookmarkCard));
+  }
   els.emptyState.classList.toggle('hidden', state.loading || state.items.length > 0);
   els.resultCount.textContent = state.total ? `${state.total} 项` : '';
   els.loadMoreButton.classList.toggle('hidden', state.items.length >= state.total || state.items.length === 0 || state.loading);
@@ -477,7 +486,7 @@ async function loadBookmarks({ reset = true } = {}) {
     state.page = requestedPage;
     state.items = reset ? newItems : [...state.items, ...newItems];
     state.total = Number(data?.count) || state.items.length;
-    renderBookmarks();
+    renderBookmarks({ append: !reset });
   } catch (error) {
     if (sequence !== state.requestSequence) return;
     console.error(error);
@@ -487,7 +496,7 @@ async function loadBookmarks({ reset = true } = {}) {
     if (sequence === state.requestSequence) {
       state.loading = false;
       els.loadingLabel.textContent = '';
-      renderBookmarks();
+      renderBookmarks({ append: !reset });
     }
   }
 }
@@ -569,8 +578,8 @@ async function openEditDialog(item) {
  *
  * Page metadata is only used as input, never written into the title field.
  * Writing the tab title back would leave the field holding "Page - Site" while
- * the rules below strip that suffix, which made a description that repeats the
- * bare title look like a duplicate and get cleared.
+ * the rules below strip that suffix, which would make a description that
+ * repeats the bare title look like a duplicate and get cleared.
  */
 async function runEditorOptimization() {
   const link = els.editorLinkInput.value.trim();
@@ -666,6 +675,11 @@ async function submitEditor(event) {
     } else {
       await createRaindrop(fields);
       await chrome.storage.local.set({ lastCollectionId: collectionId });
+      // Follow the bookmark into its collection so the new item shows up
+      // right away.
+      state.selectedCollectionId = collectionId;
+      renderCollectionTree();
+      updateSaveDestination();
     }
 
     closeDialog(els.editorDialog);
@@ -709,15 +723,27 @@ async function submitBulkAdd(event) {
       note: els.bulkAddNoteInput.value
     };
     const chunks = chunkItems(parsed.items, 100);
-    for (let index = 0; index < chunks.length; index += 1) {
-      els.bulkAddSubmitButton.textContent = `新增中 ${index + 1}/${chunks.length}…`;
-      await createRaindrops(chunks[index], common);
+    let createdCount = 0;
+    try {
+      for (let index = 0; index < chunks.length; index += 1) {
+        els.bulkAddSubmitButton.textContent = `新增中 ${index + 1}/${chunks.length}…`;
+        await createRaindrops(chunks[index], common);
+        createdCount += chunks[index].length;
+      }
+    } catch (error) {
+      // Batches already submitted cannot be rolled back, so say how far the
+      // run got instead of implying nothing was saved.
+      els.bulkAddErrors.textContent = `已完成 ${createdCount}/${parsed.items.length} 条：${error.message || '批量新增失败'}`;
+      if (createdCount > 0) await refreshAfterMutation().catch(() => {});
+      return;
     }
     closeDialog(els.bulkAddDialog);
     showToast(`已新增 ${parsed.items.length} 条书签`);
     await refreshAfterMutation();
   } catch (error) {
-    els.bulkAddErrors.textContent = error.message || '批量新增失败，可能已有部分书签完成保存。';
+    // Reached only when the batches themselves succeeded and the follow-up
+    // refresh failed; the bookmarks are on Raindrop either way.
+    els.bulkAddErrors.textContent = `书签已提交，但刷新列表失败：${error.message || '请手动刷新'}`;
   } finally {
     els.bulkAddSubmitButton.disabled = false;
     els.bulkAddSubmitButton.textContent = '开始新增';
@@ -758,16 +784,25 @@ async function submitBulkEdit(event) {
   const items = selectedItems();
   els.bulkEditSubmitButton.disabled = true;
   try {
-    let modified = 0;
-    for (const [sourceId, group] of groupItemsByCollection(items)) {
-      modified += Number(await updateRaindrops(sourceId, {
-        ids: group.map(item => item._id),
-        ...updates
-      })) || 0;
+    let updatedCount = 0;
+    try {
+      for (const [sourceId, group] of groupItemsByCollection(items)) {
+        await updateRaindrops(sourceId, {
+          ids: group.map(item => item._id),
+          ...updates
+        });
+        updatedCount += group.length;
+      }
+    } catch (error) {
+      // Groups already submitted cannot be rolled back; report progress so
+      // the user knows which part of the selection actually changed.
+      els.bulkEditError.textContent = `已更新 ${updatedCount}/${items.length} 条：${error.message || '批量编辑失败'}`;
+      if (updatedCount > 0) await refreshAfterMutation().catch(() => {});
+      return;
     }
     closeDialog(els.bulkEditDialog);
     state.selectedIds.clear();
-    showToast(`已更新 ${modified || items.length} 条书签`);
+    showToast(`已更新 ${updatedCount} 条书签`);
     await refreshAfterMutation();
   } catch (error) {
     els.bulkEditError.textContent = error.message || '批量编辑失败。';
@@ -808,21 +843,44 @@ async function removeSelectedBookmarks() {
   if (!items.length) return;
   if (!await openConfirm(`确定删除已选的 ${items.length} 条书签吗？它们会移入 Raindrop Trash。`)) return;
   try {
-    for (const [sourceId, group] of groupItemsByCollection(items)) {
-      await deleteRaindrops(sourceId, group.map(item => item._id));
+    let deletedCount = 0;
+    try {
+      for (const [sourceId, group] of groupItemsByCollection(items)) {
+        await deleteRaindrops(sourceId, group.map(item => item._id));
+        deletedCount += group.length;
+      }
+    } catch (error) {
+      // Groups already deleted cannot be rolled back; say how far the run
+      // got so the toast does not read as a total failure.
+      showToast(`已删除 ${deletedCount}/${items.length} 条：${error.message || '批量删除失败'}`, 'error');
+      if (deletedCount > 0) {
+        state.selectedIds.clear();
+        await refreshAfterMutation().catch(() => {});
+      }
+      return;
     }
     state.selectedIds.clear();
-    showToast(`已删除 ${items.length} 条书签`);
+    showToast(`已删除 ${deletedCount} 条书签`);
     await refreshAfterMutation();
   } catch (error) {
-    showToast(error.message || '批量删除失败，可能已有部分书签完成删除。', 'error');
+    showToast(error.message || '批量删除失败。', 'error');
   }
 }
 
-async function refreshAfterMutation() {
-  const data = await getCollectionData();
+/**
+ * Refresh the panel after data changed on Raindrop.
+ *
+ * `refreshUser` re-fetches /user (groups, account name); it is off by default
+ * because this extension never mutates groups, so the cached user record
+ * stays valid and one of the three requests is skipped.
+ */
+async function refreshAfterMutation({ refreshUser = false } = {}) {
+  const [user, collections] = await Promise.all([
+    refreshUser ? getUser({ force: true }) : getUser(),
+    getCollections()
+  ]);
   const stored = await chrome.storage.local.get('expandedCollectionIds');
-  populateCollections(data, Array.isArray(stored.expandedCollectionIds) ? stored.expandedCollectionIds : null);
+  populateCollections({ user, ...collections }, Array.isArray(stored.expandedCollectionIds) ? stored.expandedCollectionIds : null);
   await loadBookmarks({ reset: true });
 }
 
@@ -870,7 +928,9 @@ els.sortSelect.addEventListener('change', async () => {
 });
 els.refreshButton.addEventListener('click', async () => {
   try {
-    await refreshAfterMutation();
+    // Manual refresh is the one action that legitimately suspects the user
+    // record (account renamed, groups reordered on another device).
+    await refreshAfterMutation({ refreshUser: true });
     await loadCurrentTab();
   } catch (error) {
     showToast(error.message || '刷新失败', 'error');
@@ -925,19 +985,30 @@ chrome.tabs.onActivated.addListener(() => loadCurrentTab());
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && (changeInfo.url || changeInfo.title || changeInfo.status === 'complete')) loadCurrentTab();
 });
+// The background worker nudges the panel right after a context-menu save so a
+// panel that finished bootstrapping earlier picks up the draft immediately.
+// A panel that is still starting will find the draft at the end of bootstrap,
+// and a running panel also hears about it through storage.onChanged below.
+// The runtime message is therefore a latency optimization for one narrow
+// window, not the main channel.
 chrome.runtime.onMessage.addListener(message => {
-  if (message?.type === 'OPEN_SAVE_EDITOR') {
-    if (state.ready) consumePendingSave();
-    else state.pendingSaveWaiting = true;
-  }
+  if (message?.type === 'OPEN_SAVE_EDITOR' && state.ready) consumePendingSave();
 });
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') return;
-  if (changes.raindropToken) bootstrap();
+  // A different token means a different (or re-logged) account; the cached
+  // user record must not leak across tokens.
+  if (changes.raindropToken) {
+    clearUserCache();
+    bootstrap();
+  }
   if (changes.pendingSaveDraft && state.ready) consumePendingSave();
 });
 
 initTheme().catch(error => console.error('主题初始化失败：', error));
 els.sortSelect.replaceChildren(...SORT_OPTIONS.map(option => new Option(option.label, option.id)));
 els.sortSelect.value = DEFAULT_SORT;
+// Line breaks cannot be written into an HTML attribute without showing a
+// literal "\n", so the multi-line placeholder is set from script.
+els.bulkAddInput.placeholder = 'https://example.com\n示例页面 | https://example.com/article';
 bootstrap();

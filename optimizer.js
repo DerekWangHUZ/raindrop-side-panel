@@ -43,6 +43,9 @@ function languageLabel(id) {
 }
 
 async function requestAiRewrite(settings, fields) {
+  // An empty base would resolve to a relative URL and fail with a confusing
+  // network error; name the actual problem instead.
+  if (!settings.optimizeApiBase) throw new Error('尚未填写 API 地址');
   const base = settings.optimizeApiBase.replace(/\/+$/, '');
   if (!settings.optimizeApiKey) throw new Error('尚未填写 API Key');
 

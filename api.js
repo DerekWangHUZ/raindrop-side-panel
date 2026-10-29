@@ -1,5 +1,42 @@
 const API_BASE = 'https://api.raindrop.io/rest/v1';
 
+// 429/503 mean the server rejected the request before processing it, so even
+// a write can be retried safely. 500/502/504 may have applied a write already
+// and are therefore only retried for idempotent methods.
+const RETRY_ANY_METHOD = new Set([429, 503]);
+const RETRY_IDEMPOTENT_ONLY = new Set([500, 502, 504]);
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD']);
+const DEFAULT_MAX_RETRIES = 2;
+const MAX_RETRY_AFTER_MS = 5000;
+
+export function isRetryableStatus(status, method) {
+  if (RETRY_ANY_METHOD.has(status)) return true;
+  return RETRY_IDEMPOTENT_ONLY.has(status)
+    && IDEMPOTENT_METHODS.has(String(method || 'GET').toUpperCase());
+}
+
+export function retryDelayMs(attempt, retryAfterHeader) {
+  // A missing header (null/undefined/'') must fall through to back-off:
+  // Number(null) is 0, which would otherwise read as "retry immediately".
+  const headerText = retryAfterHeader === null || retryAfterHeader === undefined
+    ? ''
+    : String(retryAfterHeader).trim();
+  if (headerText !== '') {
+    const retryAfter = Number(headerText);
+    if (Number.isFinite(retryAfter) && retryAfter >= 0) {
+      // The header is server-controlled; cap it so one bad value cannot stall
+      // the UI for minutes.
+      return Math.min(retryAfter * 1000, MAX_RETRY_AFTER_MS);
+    }
+  }
+  // 400ms, 800ms — two attempts stay well inside typical rate-limit windows.
+  return 400 * 2 ** attempt;
+}
+
+function defaultSleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export class RaindropApiError extends Error {
   constructor(message, status = 0, details = null) {
     super(message);
@@ -14,12 +51,16 @@ export async function getStoredToken() {
   return raindropToken.trim();
 }
 
-export async function apiFetch(path, options = {}, tokenOverride = '') {
+export async function apiFetch(path, options = {}, tokenOverride = '', {
+  maxRetries = DEFAULT_MAX_RETRIES,
+  sleepFn = defaultSleep
+} = {}) {
   const token = tokenOverride.trim() || await getStoredToken();
   if (!token) {
     throw new RaindropApiError('尚未设置 Raindrop Test Token', 401);
   }
 
+  const method = String(options.method || 'GET').toUpperCase();
   const headers = new Headers(options.headers || {});
   headers.set('Authorization', `Bearer ${token}`);
 
@@ -28,13 +69,23 @@ export async function apiFetch(path, options = {}, tokenOverride = '') {
   }
 
   let response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers
-    });
-  } catch (error) {
-    throw new RaindropApiError(`网络请求失败：${error.message}`);
+  let attempt = 0;
+  // Network-level failures (fetch throwing) are NOT retried: for POST/PUT/
+  // DELETE the request may have been applied even though no response came
+  // back, and a blind retry would duplicate the write.
+  for (;;) {
+    try {
+      response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers
+      });
+    } catch (error) {
+      throw new RaindropApiError(`网络请求失败：${error.message}`);
+    }
+
+    if (!isRetryableStatus(response.status, method) || attempt >= maxRetries) break;
+    await sleepFn(retryDelayMs(attempt, response.headers?.get('retry-after')));
+    attempt += 1;
   }
 
   let data = null;
@@ -59,18 +110,43 @@ export async function validateToken(token) {
   return data?.user || null;
 }
 
-export async function getCollectionData() {
-  const [userData, rootsData, childrenData] = await Promise.all([
-    apiFetch('/user'),
+// The user record (display name, groups) changes at human speed, and it is
+// the only input from /user that the panel uses. Caching it for a short TTL
+// lets post-mutation refreshes skip the /user request; the manual refresh
+// button forces an update.
+let cachedUser = null;
+let cachedUserAt = 0;
+const USER_CACHE_TTL_MS = 10 * 60 * 1000;
+
+export function clearUserCache() {
+  cachedUser = null;
+  cachedUserAt = 0;
+}
+
+export async function getUser({ force = false, maxAgeMs = USER_CACHE_TTL_MS } = {}) {
+  if (!force && cachedUser && Date.now() - cachedUserAt <= maxAgeMs) {
+    return cachedUser;
+  }
+  const data = await apiFetch('/user');
+  cachedUser = data?.user || null;
+  cachedUserAt = Date.now();
+  return cachedUser;
+}
+
+export async function getCollections() {
+  const [rootsData, childrenData] = await Promise.all([
     apiFetch('/collections'),
     apiFetch('/collections/childrens')
   ]);
-
   return {
-    user: userData?.user || null,
     roots: rootsData?.items || [],
     children: childrenData?.items || []
   };
+}
+
+export async function getCollectionData() {
+  const [user, collections] = await Promise.all([getUser(), getCollections()]);
+  return { user, ...collections };
 }
 
 export async function getRaindrops(collectionId = 0, {

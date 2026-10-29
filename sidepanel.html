@@ -66,7 +66,7 @@
           <input id="selectAllCheckbox" type="checkbox" aria-label="选择当前列表全部书签">
           <span>
             <strong id="listTitle">全部书签</strong>
-            <span id="resultCount" class="count-label"></span>
+            <span id="resultCount" class="count-label" aria-live="polite"></span>
           </span>
         </label>
         <div class="list-tools">
@@ -78,7 +78,7 @@
         </div>
       </div>
 
-      <section id="bookmarkList" class="bookmark-list" aria-live="polite"></section>
+      <section id="bookmarkList" class="bookmark-list" aria-label="书签列表"></section>
 
       <button id="loadMoreButton" class="secondary-button load-more hidden" type="button">加载更多</button>
 
@@ -135,7 +135,7 @@
         <button id="bulkAddCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
       </div>
       <label class="field-label" for="bulkAddInput">每行一个 URL，也支持“标题 | URL”</label>
-      <textarea id="bulkAddInput" class="field-input code-input" rows="7" placeholder="https://example.com\n示例页面 | https://example.com/article"></textarea>
+      <textarea id="bulkAddInput" class="field-input code-input" rows="7"></textarea>
       <label class="field-label" for="bulkAddCollectionSelect">收藏夹</label>
       <select id="bulkAddCollectionSelect" class="field-input" required></select>
       <label class="field-label" for="bulkAddTagsInput">公共标签</label>
