@@ -30,12 +30,15 @@ import { initTheme } from './theme.js';
 const els = {
   setupCard: document.querySelector('#setupCard'),
   mainContent: document.querySelector('#mainContent'),
+  topbarActions: document.querySelector('#topbarActions'),
   settingsButton: document.querySelector('#settingsButton'),
   openSettingsButton: document.querySelector('#openSettingsButton'),
   searchInput: document.querySelector('#searchInput'),
   sortSelect: document.querySelector('#sortSelect'),
+  panelScroll: document.querySelector('.panel__scroll'),
   refreshButton: document.querySelector('#refreshButton'),
   currentPageTitle: document.querySelector('#currentPageTitle'),
+  saveArt: document.querySelector('#saveArt'),
   saveDestination: document.querySelector('#saveDestination'),
   saveCurrentButton: document.querySelector('#saveCurrentButton'),
   bulkAddButton: document.querySelector('#bulkAddButton'),
@@ -43,6 +46,10 @@ const els = {
   selectionCount: document.querySelector('#selectionCount'),
   bulkEditButton: document.querySelector('#bulkEditButton'),
   bulkDeleteButton: document.querySelector('#bulkDeleteButton'),
+  selectionClearButton: document.querySelector('#selectionClearButton'),
+  treeHeader: document.querySelector('#treeHeader'),
+  treeCurrentName: document.querySelector('#treeCurrentName'),
+  treeBody: document.querySelector('#treeBody'),
   collapseAllButton: document.querySelector('#collapseAllButton'),
   collectionTree: document.querySelector('#collectionTree'),
   selectAllCheckbox: document.querySelector('#selectAllCheckbox'),
@@ -95,6 +102,11 @@ const els = {
   confirmForm: document.querySelector('#confirmForm'),
   confirmMessage: document.querySelector('#confirmMessage'),
   confirmCancelButton: document.querySelector('#confirmCancelButton'),
+  bookmarkMenu: document.querySelector('#bookmarkMenu'),
+  menuOpenButton: document.querySelector('#menuOpenButton'),
+  menuOptimizeButton: document.querySelector('#menuOptimizeButton'),
+  menuEditButton: document.querySelector('#menuEditButton'),
+  menuDeleteButton: document.querySelector('#menuDeleteButton'),
   toast: document.querySelector('#toast')
 };
 
@@ -114,8 +126,34 @@ const state = {
   searchTimer: null,
   requestSequence: 0,
   ready: false,
-  confirmResolver: null
+  confirmResolver: null,
+  treeOpen: false,
+  menuItem: null,
+  menuAnchor: null
 };
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Build an icon from the inline sprite (copied from the reference project's
+ * index.html). The old build mixed emoji with character glyphs, which is what
+ * made the panel look unpolished and render differently per platform.
+ */
+function icon(name, className = 'icon') {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', className);
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(SVG_NS, 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.appendChild(use);
+  return svg;
+}
+
+/** Toggle an icon button's busy state without touching its icon markup. */
+function setBusy(element, busy) {
+  element.classList.toggle('is-loading', busy);
+  element.disabled = busy;
+}
 
 function showToast(message, type = 'normal') {
   els.toast.textContent = message;
@@ -128,6 +166,12 @@ function showToast(message, type = 'normal') {
 function setConnected(connected) {
   els.setupCard.classList.toggle('hidden', connected);
   els.mainContent.classList.toggle('hidden', !connected);
+  // 「批量新增 / 刷新」只在已连接时有意义；设置按钮始终可用。
+  els.topbarActions.classList.toggle('hidden', !connected);
+  if (!connected) {
+    closeBookmarkMenu();
+    els.selectionActions.classList.add('hidden');
+  }
 }
 
 function collectionName(id) {
@@ -142,7 +186,12 @@ function saveTargetId() {
 }
 
 function updateSaveDestination() {
-  els.saveDestination.textContent = `保存到：${collectionName(saveTargetId())}`;
+  const name = collectionName(saveTargetId());
+  els.saveDestination.textContent = `保存到：${name}`;
+  // 收藏夹分组默认收起，标题行必须能说明当前身处哪个收藏夹。
+  const current = collectionName(state.selectedCollectionId);
+  els.treeCurrentName.textContent = current;
+  els.treeCurrentName.title = current;
 }
 
 function nodeLabel(item) {
@@ -214,45 +263,58 @@ function populateCollections({ user, roots, children }, expandedIds = null) {
   updateSaveDestination();
 }
 
+/**
+ * Render one collection as a flat list of `li` rows.
+ *
+ * Rows carry the reference project's `.nav-item` / `.nav-link` classes, so
+ * hover and the selected tint come straight from apple-music.css. Children are
+ * flattened with an incremented `--depth` instead of nested `<ul>`s: the
+ * indentation is purely visual, and flattening keeps the markup valid.
+ */
 function renderCollectionNode(node, depth) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'collection-node';
-  const row = document.createElement('div');
-  row.className = `collection-item${Number(node.item._id) === state.selectedCollectionId ? ' selected' : ''}`;
+  const id = Number(node.item._id);
+  const rows = [];
+  const row = document.createElement('li');
+  row.className = `nav-item collection-item${id === state.selectedCollectionId ? ' nav-item--selected' : ''}`;
   row.style.setProperty('--depth', depth);
 
-  const toggle = document.createElement('button');
-  toggle.className = 'collection-toggle';
-  toggle.type = 'button';
-  toggle.setAttribute('aria-label', node.children.length ? '展开或收起子收藏夹' : '没有子收藏夹');
+  let toggle;
   if (node.children.length) {
-    const expanded = state.expandedCollectionIds.has(Number(node.item._id));
-    toggle.textContent = expanded ? '⌄' : '›';
+    const expanded = state.expandedCollectionIds.has(id);
+    toggle = document.createElement('button');
+    toggle.className = 'collection-toggle';
+    toggle.type = 'button';
+    toggle.dataset.expanded = String(expanded);
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.setAttribute('aria-label', '展开或收起子收藏夹');
+    toggle.appendChild(icon('chevron-down'));
     toggle.addEventListener('click', async event => {
       event.stopPropagation();
-      const id = Number(node.item._id);
       if (state.expandedCollectionIds.has(id)) state.expandedCollectionIds.delete(id);
       else state.expandedCollectionIds.add(id);
       await chrome.storage.local.set({ expandedCollectionIds: [...state.expandedCollectionIds] });
       renderCollectionTree();
     });
   } else {
-    toggle.textContent = '·';
-    toggle.disabled = true;
+    // 叶子节点用一个小圆点占住折叠位，行高与父节点保持一致。
+    toggle = document.createElement('span');
+    toggle.className = 'collection-dot';
+    toggle.setAttribute('aria-hidden', 'true');
   }
 
   const select = document.createElement('button');
-  select.className = 'collection-label';
+  select.className = 'nav-link collection-label';
   select.type = 'button';
   select.textContent = nodeLabel(node.item);
-  select.addEventListener('click', () => selectCollection(Number(node.item._id)));
+  select.title = nodeLabel(node.item);
+  select.addEventListener('click', () => selectCollection(id));
   row.append(toggle, select);
-  wrapper.appendChild(row);
+  rows.push(row);
 
-  if (state.expandedCollectionIds.has(Number(node.item._id))) {
-    node.children.forEach(child => wrapper.appendChild(renderCollectionNode(child, depth + 1)));
+  if (state.expandedCollectionIds.has(id)) {
+    node.children.forEach(child => rows.push(...renderCollectionNode(child, depth + 1)));
   }
-  return wrapper;
+  return rows;
 }
 
 function renderCollectionTree() {
@@ -262,27 +324,31 @@ function renderCollectionTree() {
     [-1, '未分类']
   ];
   special.forEach(([id, label]) => {
-    const row = document.createElement('div');
-    row.className = `collection-item special${state.selectedCollectionId === id ? ' selected' : ''}`;
-    const spacer = document.createElement('span');
-    spacer.className = 'collection-toggle spacer';
+    const row = document.createElement('li');
+    row.className = `nav-item collection-item${state.selectedCollectionId === id ? ' nav-item--selected' : ''}`;
+    row.style.setProperty('--depth', 0);
+    const glyph = document.createElement('span');
+    glyph.className = 'nav-icon collection-glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.appendChild(icon(id === 0 ? 'list' : 'grid'));
     const button = document.createElement('button');
-    button.className = 'collection-label';
+    button.className = 'nav-link collection-label';
     button.type = 'button';
     button.textContent = label;
+    button.title = label;
     button.addEventListener('click', () => selectCollection(id));
-    row.append(spacer, button);
+    row.append(glyph, button);
     els.collectionTree.appendChild(row);
   });
 
   state.collectionTree.forEach(group => {
     if (group.title) {
-      const heading = document.createElement('div');
+      const heading = document.createElement('li');
       heading.className = 'collection-group-title';
       heading.textContent = group.title;
       els.collectionTree.appendChild(heading);
     }
-    group.nodes.forEach(node => els.collectionTree.appendChild(renderCollectionNode(node, 0)));
+    group.nodes.forEach(node => els.collectionTree.append(...renderCollectionNode(node, 0)));
   });
 }
 
@@ -336,110 +402,183 @@ function safeHostname(link) {
   try { return new URL(link).hostname; } catch (_) { return ''; }
 }
 
-function createFallback(item) {
-  const fallback = document.createElement('div');
-  fallback.className = 'bookmark-cover bookmark-fallback';
-  const text = (item.title || item.domain || '?').trim();
-  fallback.textContent = text.charAt(0).toUpperCase() || '?';
-  return fallback;
+/**
+ * Cover box content: the photo, or the title's first letter — never both.
+ *
+ * A layered design (letter underneath, photo on top) looks fine in theory but
+ * breaks on real favicons: they are usually a small glyph on a TRANSPARENT
+ * background, so `object-fit: cover` scales the glyph up while the transparent
+ * margin stays transparent — and the letter underneath shows through. One tile
+ * then displays two glyphs. So exactly one element is ever inserted.
+ */
+function coverContent({ title = '', cover = '', lazy = true } = {}) {
+  const initial = document.createElement('span');
+  initial.className = 'cover-initial';
+  initial.setAttribute('aria-hidden', 'true');
+  const seed = String(title || '').trim();
+  initial.textContent = seed.charAt(0).toUpperCase() || '·';
+  if (!cover) return initial;
+
+  const photo = document.createElement('img');
+  photo.className = 'cover-photo';
+  photo.src = cover;
+  photo.alt = '';
+  if (lazy) photo.loading = 'lazy';
+  photo.referrerPolicy = 'no-referrer';
+  // 取不到图就换成首字。有的服务端返回 200 却给出空 body，那种情况不触发
+  // error，只会得到 naturalWidth 为 0 的图片，所以两种都要处理。
+  const fallback = () => photo.replaceWith(initial);
+  photo.addEventListener('error', fallback, { once: true });
+  photo.addEventListener('load', () => { if (!photo.naturalWidth) fallback(); }, { once: true });
+  return photo;
 }
 
-function createBookmarkCard(item) {
-  const card = document.createElement('article');
-  card.className = 'bookmark-card';
-  card.tabIndex = 0;
-  card.setAttribute('role', 'link');
+function openBookmark(item) {
+  if (item?.link) chrome.tabs.create({ url: item.link });
+}
 
-  const select = document.createElement('input');
-  select.type = 'checkbox';
-  select.className = 'bookmark-select';
-  select.checked = state.selectedIds.has(Number(item._id));
-  select.setAttribute('aria-label', `选择${item.title || item.link || '书签'}`);
-  select.addEventListener('click', event => event.stopPropagation());
-  select.addEventListener('change', () => {
+/**
+ * One bookmark row, built from the reference project's `.song-row` markup:
+ * `.song-row__img` for the cover square, `.song-row__t` plus its `.sub` line for
+ * the two-line label. The old build used a four-column card grid with an excerpt
+ * and three always-visible buttons, which read as a spreadsheet.
+ *
+ * The cover square always renders the title's first letter underneath the photo.
+ * A favicon that loads but is blank or transparent would otherwise leave an
+ * empty tile, and a broken one would leave nothing at all.
+ */
+function createBookmarkCard(item) {
+  const row = document.createElement('article');
+  row.className = 'song-row';
+  row.tabIndex = 0;
+  row.setAttribute('role', 'link');
+
+  const pick = document.createElement('input');
+  pick.type = 'checkbox';
+  pick.className = 'pick song-row__pick';
+  pick.checked = state.selectedIds.has(Number(item._id));
+  pick.setAttribute('aria-label', `选择${item.title || item.link || '书签'}`);
+  pick.addEventListener('click', event => event.stopPropagation());
+  pick.addEventListener('change', () => {
     const id = Number(item._id);
-    if (select.checked) state.selectedIds.add(id);
+    if (pick.checked) state.selectedIds.add(id);
     else state.selectedIds.delete(id);
     renderSelectionState();
   });
 
-  let visual;
-  if (item.cover) {
-    visual = document.createElement('img');
-    visual.className = 'bookmark-cover';
-    visual.src = item.cover;
-    visual.alt = '';
-    visual.loading = 'lazy';
-    visual.referrerPolicy = 'no-referrer';
-    visual.addEventListener('error', () => visual.replaceWith(createFallback(item)), { once: true });
-  } else visual = createFallback(item);
+  const cover = document.createElement('span');
+  cover.className = 'song-row__img song-row__cover';
+  cover.appendChild(coverContent({ title: item.title || item.domain || '', cover: item.cover }));
 
-  const main = document.createElement('div');
-  main.className = 'bookmark-main';
-  const title = document.createElement('div');
-  title.className = 'bookmark-title';
-  title.textContent = item.title || item.link || '无标题';
-  const domain = document.createElement('div');
-  domain.className = 'bookmark-domain';
-  domain.textContent = item.domain || safeHostname(item.link);
-  main.append(title, domain);
-  if (item.excerpt) {
-    const excerpt = document.createElement('div');
-    excerpt.className = 'bookmark-excerpt';
-    excerpt.textContent = item.excerpt;
-    main.appendChild(excerpt);
-  }
+  const label = document.createElement('div');
+  label.className = 'song-row__t';
+  label.appendChild(document.createTextNode(item.title || item.link || '无标题'));
+  label.title = item.title || item.link || '';
+  const sub = document.createElement('span');
+  sub.className = 'sub';
+  sub.textContent = item.domain || safeHostname(item.link);
   if (Array.isArray(item.tags) && item.tags.length) {
-    const tags = document.createElement('div');
-    tags.className = 'tags';
-    item.tags.slice(0, 3).forEach(tagText => {
+    item.tags.slice(0, 2).forEach(tagText => {
       const tag = document.createElement('span');
       tag.className = 'tag';
       tag.textContent = tagText;
-      tags.appendChild(tag);
+      tag.title = tagText;
+      sub.appendChild(tag);
     });
-    main.appendChild(tags);
   }
+  label.appendChild(sub);
 
-  const actions = document.createElement('div');
-  actions.className = 'bookmark-actions';
-  const editButton = document.createElement('button');
-  editButton.className = 'card-action';
-  editButton.type = 'button';
-  editButton.title = '编辑';
-  editButton.textContent = '✎';
-  editButton.addEventListener('click', event => { event.stopPropagation(); openEditDialog(item); });
-  const optimizeButton = document.createElement('button');
-  optimizeButton.className = 'card-action';
-  optimizeButton.type = 'button';
-  optimizeButton.title = '优化书签名和摘要';
-  optimizeButton.setAttribute('aria-label', '优化书签名和摘要');
-  optimizeButton.textContent = '✨';
-  optimizeButton.addEventListener('click', async event => {
+  const more = document.createElement('button');
+  more.className = 'pbtn song-row__more';
+  more.type = 'button';
+  more.title = '更多操作';
+  more.setAttribute('aria-label', `更多操作：${item.title || item.link || '书签'}`);
+  more.setAttribute('aria-haspopup', 'true');
+  more.appendChild(icon('ellipsis'));
+  more.addEventListener('click', event => {
     event.stopPropagation();
-    await optimizeBookmarkFromCard(item, optimizeButton);
+    // `detail === 0` marks a keyboard-activated click (Enter / Space).
+    openBookmarkMenu(item, more, { focusFirst: event.detail === 0 });
   });
-  const deleteButton = document.createElement('button');
-  deleteButton.className = 'card-action danger-text';
-  deleteButton.type = 'button';
-  deleteButton.title = '删除';
-  deleteButton.textContent = '×';
-  deleteButton.addEventListener('click', async event => { event.stopPropagation(); await removeSingleBookmark(item); });
-  actions.append(editButton, optimizeButton, deleteButton);
-  card.append(select, visual, main, actions);
 
-  const open = () => { if (item.link) chrome.tabs.create({ url: item.link }); };
-  card.addEventListener('click', event => {
+  row.append(pick, cover, label, more);
+
+  const open = () => openBookmark(item);
+  row.addEventListener('click', event => {
     if (event.target.closest('button,input')) return;
     open();
   });
-  card.addEventListener('keydown', event => {
+  row.addEventListener('keydown', event => {
     if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('button,input')) {
       event.preventDefault();
       open();
     }
   });
-  return card;
+  return row;
+}
+
+/* ================= 行内操作菜单 ================= */
+
+function closeBookmarkMenu({ restoreFocus = false } = {}) {
+  if (els.bookmarkMenu.classList.contains('hidden')) return;
+  els.bookmarkMenu.classList.add('hidden');
+  const anchor = state.menuAnchor;
+  state.menuItem = null;
+  state.menuAnchor = null;
+  if (restoreFocus && anchor?.isConnected) anchor.focus();
+}
+
+function openBookmarkMenu(item, anchor, { focusFirst = false } = {}) {
+  if (state.menuAnchor === anchor) {
+    closeBookmarkMenu();
+    return;
+  }
+  closeBookmarkMenu();
+  state.menuItem = item;
+  state.menuAnchor = anchor;
+
+  const menu = els.bookmarkMenu;
+  menu.classList.remove('hidden');
+
+  // Measure after showing, then clamp: the side panel can be as narrow as
+  // ~300px and a menu anchored to a right-edge button would overflow.
+  const rect = anchor.getBoundingClientRect();
+  const size = menu.getBoundingClientRect();
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - size.width - margin);
+  menu.style.left = `${Math.round(Math.min(Math.max(margin, rect.right - size.width), maxLeft))}px`;
+  const below = rect.bottom + 6;
+  menu.style.top = `${Math.round(
+    below + size.height + margin <= window.innerHeight
+      ? below
+      : Math.max(margin, rect.top - size.height - 6)
+  )}px`;
+
+  // Only pull focus into the menu for keyboard users: a mouse click already
+  // focused the trigger, and moving focus would paint a focus ring there.
+  if (focusFirst) menu.querySelector('.nav-link')?.focus();
+}
+
+async function runMenuAction(action) {
+  const item = state.menuItem;
+  const anchor = state.menuAnchor;
+  closeBookmarkMenu();
+  if (!item) return;
+
+  if (action === 'open') openBookmark(item);
+  else if (action === 'optimize') await optimizeBookmarkFromCard(item);
+  else if (action === 'edit') await openEditDialog(item);
+  else if (action === 'delete') await removeSingleBookmark(item);
+
+  // A mutation rebuilds the row, so the anchor only survives read-only actions.
+  if (anchor?.isConnected) anchor.focus();
+}
+
+function applyTreeOpen(open, { persist = true } = {}) {
+  state.treeOpen = Boolean(open);
+  els.treeHeader.setAttribute('aria-expanded', String(state.treeOpen));
+  els.treeBody.classList.toggle('hidden', !state.treeOpen);
+  if (persist) chrome.storage.local.set({ collectionTreeOpen: state.treeOpen }).catch(() => {});
 }
 
 function renderBookmarks({ append = false } = {}) {
@@ -472,6 +611,7 @@ async function loadBookmarks({ reset = true } = {}) {
   }
   els.listTitle.textContent = search ? '全局搜索' : collectionName(state.selectedCollectionId);
   els.loadingLabel.textContent = '加载中…';
+  els.bookmarkList.setAttribute('aria-busy', 'true');
   els.emptyState.classList.add('hidden');
   try {
     const data = await getRaindrops(collectionId, {
@@ -496,19 +636,37 @@ async function loadBookmarks({ reset = true } = {}) {
     if (sequence === state.requestSequence) {
       state.loading = false;
       els.loadingLabel.textContent = '';
+      els.bookmarkList.removeAttribute('aria-busy');
       renderBookmarks({ append: !reset });
     }
   }
+}
+
+function setCurrentPageTitle(title) {
+  const text = title || '当前网页';
+  els.currentPageTitle.textContent = text;
+  els.currentPageTitle.title = text;
+}
+
+/** 保存胶囊左侧的封面方框：有 favicon 就只放 favicon，没有就只放标题首字。 */
+function renderSaveArt(tab) {
+  els.saveArt.replaceChildren(coverContent({
+    title: tab?.title || els.currentPageTitle.textContent,
+    cover: tab?.favIconUrl || '',
+    lazy: false
+  }));
 }
 
 async function loadCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     state.currentTab = tab || null;
-    els.currentPageTitle.textContent = tab?.title || '当前网页';
+    setCurrentPageTitle(tab?.title);
+    renderSaveArt(tab);
   } catch (_) {
     state.currentTab = null;
-    els.currentPageTitle.textContent = '当前网页';
+    setCurrentPageTitle('');
+    renderSaveArt(null);
   }
 }
 
@@ -545,8 +703,7 @@ function openEditor({ mode, item = {} }) {
     ? String(desired)
     : '-1';
   els.editorError.textContent = '';
-  els.optimizeEditorButton.disabled = false;
-  els.optimizeEditorButton.textContent = '✨';
+  setBusy(els.optimizeEditorButton, false);
   els.editorDialog.showModal();
   els.editorLinkInput.focus();
 }
@@ -586,8 +743,7 @@ async function runEditorOptimization() {
   if (!validHttpUrl(link)) return setEditorError('请先填写有效的链接，再进行优化。');
 
   const button = els.optimizeEditorButton;
-  button.disabled = true;
-  button.textContent = '…';
+  setBusy(button, true);
   setEditorError('');
 
   try {
@@ -622,14 +778,12 @@ async function runEditorOptimization() {
   } catch (error) {
     setEditorError(error.message || '优化失败');
   } finally {
-    button.disabled = false;
-    button.textContent = '✨';
+    setBusy(button, false);
   }
 }
 
-/** Optimize a bookmark straight from its card, then refresh the list. */
-async function optimizeBookmarkFromCard(item, button) {
-  button.disabled = true;
+/** Optimize a bookmark straight from its row, then refresh the list. */
+async function optimizeBookmarkFromCard(item) {
   try {
     const result = await optimizeFields({
       link: item.link,
@@ -645,8 +799,6 @@ async function optimizeBookmarkFromCard(item, button) {
     await refreshAfterMutation().catch(() => {});
   } catch (error) {
     showToast(error.message || '优化失败', 'error');
-  } finally {
-    button.disabled = false;
   }
 }
 
@@ -895,16 +1047,25 @@ async function consumePendingSave() {
 async function bootstrap() {
   const token = await getStoredToken();
   if (!token) {
+    // 未连接时主内容整块隐藏，收藏夹分组也回到收起态，避免留下半开的 DOM 状态。
+    applyTreeOpen(false, { persist: false });
     setConnected(false);
     return;
   }
   setConnected(true);
   try {
-    const stored = await chrome.storage.local.get(['lastCollectionId', 'expandedCollectionIds', 'sortMode']);
+    const stored = await chrome.storage.local.get([
+      'lastCollectionId',
+      'expandedCollectionIds',
+      'sortMode',
+      'collectionTreeOpen'
+    ]);
     const savedCollectionId = Number(stored.lastCollectionId);
     state.selectedCollectionId = Number.isFinite(savedCollectionId) ? savedCollectionId : 0;
     state.sort = normalizeSort(stored.sortMode);
     els.sortSelect.value = state.sort;
+    // 收藏夹分组默认收起：打开侧边栏第一眼要看到书签，而不是一屏导航。
+    applyTreeOpen(Boolean(stored.collectionTreeOpen), { persist: false });
     const data = await getCollectionData();
     populateCollections(data, Array.isArray(stored.expandedCollectionIds) ? stored.expandedCollectionIds : null);
     await loadCurrentTab();
@@ -927,6 +1088,7 @@ els.sortSelect.addEventListener('change', async () => {
   await loadBookmarks({ reset: true });
 });
 els.refreshButton.addEventListener('click', async () => {
+  setBusy(els.refreshButton, true);
   try {
     // Manual refresh is the one action that legitimately suspects the user
     // record (account renamed, groups reordered on another device).
@@ -934,12 +1096,19 @@ els.refreshButton.addEventListener('click', async () => {
     await loadCurrentTab();
   } catch (error) {
     showToast(error.message || '刷新失败', 'error');
+  } finally {
+    setBusy(els.refreshButton, false);
   }
 });
 els.saveCurrentButton.addEventListener('click', () => openSaveDialog());
 els.bulkAddButton.addEventListener('click', openBulkAddDialog);
 els.bulkEditButton.addEventListener('click', openBulkEditDialog);
 els.bulkDeleteButton.addEventListener('click', removeSelectedBookmarks);
+els.selectionClearButton.addEventListener('click', () => {
+  state.selectedIds.clear();
+  renderBookmarks();
+});
+els.treeHeader.addEventListener('click', () => applyTreeOpen(!state.treeOpen));
 els.collapseAllButton.addEventListener('click', async () => {
   state.expandedCollectionIds.clear();
   await chrome.storage.local.set({ expandedCollectionIds: [] });
@@ -980,6 +1149,45 @@ els.bulkEditCancelButton.addEventListener('click', () => closeDialog(els.bulkEdi
 els.confirmForm.addEventListener('submit', event => { event.preventDefault(); finishConfirm(true); });
 els.confirmCancelButton.addEventListener('click', () => finishConfirm(false));
 els.confirmDialog.addEventListener('cancel', event => { event.preventDefault(); finishConfirm(false); });
+
+/**
+ * Let a click on the backdrop dismiss a sheet.
+ *
+ * The dialog element covers the viewport while only the bottom sheet is
+ * visible, so a click outside retargets to the dialog itself; clicks inside the
+ * content keep their own target and must be ignored.
+ */
+function closeOnBackdrop(dialog, onClose) {
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog) onClose();
+  });
+}
+closeOnBackdrop(els.editorDialog, () => closeDialog(els.editorDialog));
+closeOnBackdrop(els.bulkAddDialog, () => closeDialog(els.bulkAddDialog));
+closeOnBackdrop(els.bulkEditDialog, () => closeDialog(els.bulkEditDialog));
+// The confirm dialog holds a promise, so it must resolve instead of just closing.
+closeOnBackdrop(els.confirmDialog, () => finishConfirm(false));
+
+els.menuOpenButton.addEventListener('click', () => runMenuAction('open'));
+els.menuOptimizeButton.addEventListener('click', () => runMenuAction('optimize'));
+els.menuEditButton.addEventListener('click', () => runMenuAction('edit'));
+els.menuDeleteButton.addEventListener('click', () => runMenuAction('delete'));
+
+// The menu is one persistent element, so every dismissal path lives here.
+// `pointerdown` in the capture phase runs before the trigger's own click, which
+// is why clicks on a row's ••• button are excluded.
+document.addEventListener('pointerdown', event => {
+  if (els.bookmarkMenu.classList.contains('hidden')) return;
+  if (event.target.closest('#bookmarkMenu') || event.target.closest('.song-row__more')) return;
+  closeBookmarkMenu();
+}, true);
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || els.bookmarkMenu.classList.contains('hidden')) return;
+  event.stopPropagation();
+  closeBookmarkMenu({ restoreFocus: true });
+});
+els.panelScroll.addEventListener('scroll', () => closeBookmarkMenu(), { passive: true });
+window.addEventListener('resize', () => closeBookmarkMenu());
 
 chrome.tabs.onActivated.addListener(() => loadCurrentTab());
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

@@ -4,190 +4,222 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raindrop Side Panel</title>
+  <link rel="stylesheet" href="apple-music.css">
+  <link rel="stylesheet" href="ui-base.css">
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
-  <main class="app-shell">
-    <header class="topbar">
-      <div class="brand">
-        <img src="icons/icon32.png" alt="" class="brand-icon">
-        <div>
-          <div class="brand-title">Raindrop</div>
-          <div class="brand-subtitle">Side Panel</div>
-        </div>
-      </div>
-      <button id="settingsButton" class="icon-button" type="button" title="设置" aria-label="打开设置">⚙</button>
-    </header>
 
-    <section id="setupCard" class="setup-card hidden">
-      <div class="setup-icon">🔑</div>
-      <h1>先连接 Raindrop</h1>
-      <p>在设置页粘贴你的 Raindrop Test Token。该 Token 可长期使用，并且只保存在本机扩展存储中。</p>
-      <button id="openSettingsButton" class="primary-button" type="button">打开设置</button>
+<!-- 图标 sprite 取自参考项目 index.html；只有 i-settings / i-pencil / i-sparkles / i-trash
+     这 4 个是它没有的（见 README「界面来源」）。 -->
+<svg class="icon-sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.6" fill="none" stroke="currentColor" stroke-width="1.9"/><line x1="15.4" y1="15.4" x2="20.2" y2="20.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M16.8 3.6 19.6 6l-2.8 2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.6 6H8.2A4.2 4.2 0 0 0 4 10.2v1.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7.2 20.4 4.4 18l2.8-2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.4 18h11.4a4.2 4.2 0 0 0 4.2-4.2v-1.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9.4 5.6 15.8 12l-6.4 6.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ellipsis" viewBox="0 0 24 24"><circle cx="5.2" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="18.8" cy="12" r="1.7" fill="currentColor"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><circle cx="4.6" cy="6.2" r="1.5" fill="currentColor"/><rect x="8.6" y="5.2" width="11.4" height="2" rx="1" fill="currentColor"/><circle cx="4.6" cy="12" r="1.5" fill="currentColor"/><rect x="8.6" y="11" width="11.4" height="2" rx="1" fill="currentColor"/><circle cx="4.6" cy="17.8" r="1.5" fill="currentColor"/><rect x="8.6" y="16.8" width="11.4" height="2" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.4" y="3.4" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="13.1" y="3.4" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="3.4" y="13.1" width="7.5" height="7.5" rx="2" fill="currentColor"/><rect x="13.1" y="13.1" width="7.5" height="7.5" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.6" cy="16.4" r="4.1"/><path d="M10.6 13.4 20.7 3.3M16.6 7.4l2.6 2.6M14 10l2.6 2.6"/></g></symbol>
+  <symbol id="i-arrow-up-forward" viewBox="0 0 24 24"><path d="M7.2 16.8 16.4 7.6M9.8 7.4h6.8v6.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.2 14.6a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.1A1.65 1.65 0 0 0 8.9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.1A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.08A1.65 1.65 0 0 0 10.1 3.1V3a2 2 0 1 1 4 0v.1a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.08a1.65 1.65 0 0 0 1.51 1.02H21a2 2 0 1 1 0 4h-.1a1.65 1.65 0 0 0-1.51 1z"/></g></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17.2 3.2a2.7 2.7 0 0 1 3.8 3.8L7.6 20.4 3 21.6l1.2-4.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path fill="currentColor" d="M10.6 2.6a.6.6 0 0 1 1.13 0l1.36 3.72 3.72 1.36a.6.6 0 0 1 0 1.13l-3.72 1.36-1.36 3.72a.6.6 0 0 1-1.13 0L9.24 10.2 5.52 8.83a.6.6 0 0 1 0-1.13l3.72-1.36z"/><path fill="currentColor" d="M17.6 13.4a.45.45 0 0 1 .85 0l.78 2.14 2.14.78a.45.45 0 0 1 0 .85l-2.14.78-.78 2.14a.45.45 0 0 1-.85 0l-.78-2.14-2.14-.78a.45.45 0 0 1 0-.85l2.14-.78z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.2h17M18.6 6.2l-.9 13.1a2 2 0 0 1-2 1.9H8.3a2 2 0 0 1-2-1.9L5.4 6.2"/><path d="M8.6 6.2V4.3a2 2 0 0 1 2-2h2.8a2 2 0 0 1 2 2v1.9M10.3 10.6v6.4M13.7 10.6v6.4"/></g></symbol>
+</svg>
+
+<!-- .sidebar 提供材质（--nav-bg + saturate(2.2) blur(16px) + 圆角 20px + --panel-shadow + 离屏 --sb-gap），
+     .panel 只覆盖几何（补一个 right、放开固定宽度）。覆盖清单见 sidepanel.css。 -->
+<div class="sidebar panel">
+  <header class="panel__head">
+    <span class="sidebar__logo">
+      <img class="sidebar__logo-apple" src="icons/icon32.png" alt="">
+      <span class="sidebar__logo-text">Raindrop</span>
+    </span>
+    <span class="panel__head-actions" id="topbarActions">
+      <button id="bulkAddButton" class="pbtn" type="button" title="批量新增书签" aria-label="批量新增书签"><svg class="icon"><use href="#i-plus"/></svg></button>
+      <button id="refreshButton" class="pbtn" type="button" title="刷新" aria-label="刷新"><svg class="icon"><use href="#i-repeat"/></svg><span class="spinner"></span></button>
+    </span>
+    <button id="settingsButton" class="pbtn" type="button" title="设置" aria-label="打开设置"><svg class="icon"><use href="#i-settings"/></svg></button>
+  </header>
+
+  <div class="panel__scroll sidebar__scroll">
+    <section id="setupCard" class="setup hidden">
+      <span class="setup__icon"><svg class="icon"><use href="#i-key"/></svg></span>
+      <h1 class="setup__title">先连接 Raindrop</h1>
+      <p class="detail-foot">在设置页粘贴你的 Raindrop Test Token。该 Token 可长期使用，并且只保存在本机扩展存储中。</p>
+      <button id="openSettingsButton" class="btn-pill" type="button">打开设置</button>
     </section>
 
-    <section id="mainContent" class="main-content hidden">
-      <div class="search-row">
-        <label class="search-box">
-          <span class="search-icon">⌕</span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="搜索全部书签…">
+    <section id="mainContent" class="main hidden">
+      <div class="search-field">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <label class="visually-hidden" for="searchInput">搜索全部书签</label>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="搜索全部书签">
+      </div>
+
+      <!-- .player 提供材质（1000px 胶囊 / --player-bg / blur(40px) saturate(1.8) / --pill-border）
+           .lcd-art 提供封面方块（42px / 圆角 4 / 半像素描边），.lcd-title 与 .lcd-artist 提供两级字号。
+           方框内容由 renderSaveArt 填：有 favicon 就只放 favicon，没有就只放标题首字。 -->
+      <div class="player save-pill">
+        <span id="saveArt" class="lcd-art save-pill__art"></span>
+        <span class="save-pill__meta">
+          <span class="lcd-title" id="currentPageTitle">当前网页</span>
+          <span class="lcd-artist" id="saveDestination">保存到：未分类</span>
+        </span>
+        <button id="saveCurrentButton" class="btn-pill" type="button"><svg class="icon"><use href="#i-plus"/></svg><span>保存</span></button>
+      </div>
+
+      <div class="shelf-title shelf-title--group">
+        <button id="treeHeader" class="tree-toggle" type="button" aria-expanded="false" aria-controls="treeBody">
+          <svg class="icon tree-toggle__chevron"><use href="#i-chevron-down"/></svg>
+          <span>收藏夹</span>
+        </button>
+        <span id="treeCurrentName" class="card-sub tree-current">全部书签</span>
+      </div>
+      <div id="treeBody" class="tree-body">
+        <ul class="nav-group" id="collectionTree"></ul>
+        <div class="tree-tools"><button id="collapseAllButton" class="drawer-edit" type="button">全部收起</button></div>
+      </div>
+
+      <div class="shelf-title shelf-title--group">
+        <label class="list-pick">
+          <input id="selectAllCheckbox" class="pick" type="checkbox" aria-label="选择当前列表全部书签">
+          <span id="listTitle">全部书签</span>
+          <span id="resultCount" class="card-sub" aria-live="polite"></span>
         </label>
-        <button id="refreshButton" class="icon-button refresh-button" type="button" title="刷新" aria-label="刷新">↻</button>
+        <span class="shelf-title__tools">
+          <span id="loadingLabel" class="card-sub"></span>
+          <select id="sortSelect" class="select-inline" aria-label="排序方式"></select>
+        </span>
       </div>
 
-      <div class="save-card">
-        <div class="save-card-copy">
-          <span class="eyebrow">快速收藏</span>
-          <strong id="currentPageTitle">当前网页</strong>
-          <span id="saveDestination" class="muted">保存到：未分类</span>
-        </div>
-        <button id="saveCurrentButton" class="primary-button save-button" type="button">＋ 保存当前页</button>
-      </div>
+      <section id="bookmarkList" class="songlist" aria-label="书签列表"></section>
 
-      <section class="collection-panel" aria-label="收藏夹">
-        <div class="section-heading">
-          <strong>收藏夹</strong>
-          <button id="collapseAllButton" class="text-button" type="button">全部收起</button>
-        </div>
-        <div id="collectionTree" class="collection-tree"></div>
-      </section>
+      <button id="loadMoreButton" class="btn-pill btn-pill--quiet load-more hidden" type="button">加载更多</button>
 
-      <div class="action-row">
-        <button id="bulkAddButton" class="secondary-button" type="button">批量新增</button>
-        <div id="selectionActions" class="selection-actions hidden">
-          <span id="selectionCount" class="muted"></span>
-          <button id="bulkEditButton" class="secondary-button" type="button">批量编辑</button>
-          <button id="bulkDeleteButton" class="danger-button" type="button">批量删除</button>
-        </div>
-      </div>
-
-      <div class="list-heading">
-        <label class="select-all-label">
-          <input id="selectAllCheckbox" type="checkbox" aria-label="选择当前列表全部书签">
-          <span>
-            <strong id="listTitle">全部书签</strong>
-            <span id="resultCount" class="count-label" aria-live="polite"></span>
-          </span>
-        </label>
-        <div class="list-tools">
-          <label class="sort-control">
-            <span class="visually-hidden">排序方式</span>
-            <select id="sortSelect" aria-label="排序方式"></select>
-          </label>
-          <span id="loadingLabel" class="loading-label"></span>
-        </div>
-      </div>
-
-      <section id="bookmarkList" class="bookmark-list" aria-label="书签列表"></section>
-
-      <button id="loadMoreButton" class="secondary-button load-more hidden" type="button">加载更多</button>
-
-      <div id="emptyState" class="empty-state hidden">
-        <div class="empty-icon">☂</div>
-        <strong>这里还没有书签</strong>
-        <span>换个收藏夹或搜索词试试。</span>
+      <div id="emptyState" class="empty-note hidden">
+        <span>这里还没有书签</span>
+        <span class="card-sub">换个收藏夹或搜索词试试。</span>
       </div>
     </section>
-  </main>
+  </div>
+</div>
 
-  <dialog id="editorDialog" class="app-dialog">
-    <form id="editorForm" method="dialog">
-      <div class="dialog-heading">
-        <div>
-          <span class="eyebrow">书签</span>
-          <h2 id="editorHeading">保存书签</h2>
-        </div>
-        <button id="editorCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
-      </div>
-      <label class="field-label" for="editorLinkInput">链接</label>
-      <input id="editorLinkInput" class="field-input" type="url" required>
-      <label class="field-label" for="editorTitleInput">标题</label>
-      <div class="field-inline">
-        <input id="editorTitleInput" class="field-input" type="text" maxlength="1000" placeholder="可留空">
-        <button id="optimizeEditorButton" class="inline-optimize" type="button" title="优化书签名和摘要" aria-label="优化书签名和摘要">✨</button>
-      </div>
-      <label class="field-label" for="editorCollectionSelect">收藏夹</label>
-      <select id="editorCollectionSelect" class="field-input" required></select>
-      <details id="editorAdvancedFields" class="advanced-fields">
-        <summary>更多字段</summary>
-        <label class="field-label" for="editorTagsInput">标签</label>
-        <input id="editorTagsInput" class="field-input" type="text" placeholder="用逗号分隔">
-        <label class="field-label" for="editorNoteInput">备注</label>
-        <textarea id="editorNoteInput" class="field-input" rows="3" maxlength="10000"></textarea>
-        <label class="field-label" for="editorExcerptInput">摘要</label>
-        <textarea id="editorExcerptInput" class="field-input" rows="3" maxlength="10000"></textarea>
-      </details>
-      <p id="editorError" class="form-error"></p>
-      <div class="dialog-actions">
-        <button id="editorCancelButton" class="secondary-button" type="button">取消</button>
-        <button id="editorSubmitButton" class="primary-button" type="submit">保存</button>
-      </div>
-    </form>
-  </dialog>
+<!-- 吸底选择条同样是 .player 材质 -->
+<div id="selectionActions" class="player selection-bar hidden">
+  <span id="selectionCount" class="lcd-title"></span>
+  <span class="selection-bar__spacer"></span>
+  <button id="bulkEditButton" class="btn-pill btn-pill--small" type="button">批量编辑</button>
+  <button id="bulkDeleteButton" class="btn-pill btn-pill--small btn-pill--danger" type="button">批量删除</button>
+  <button id="selectionClearButton" class="pbtn" type="button" title="取消选择" aria-label="取消选择"><svg class="icon"><use href="#i-close"/></svg></button>
+</div>
 
-  <dialog id="bulkAddDialog" class="app-dialog">
-    <form id="bulkAddForm" method="dialog">
-      <div class="dialog-heading">
-        <div>
-          <span class="eyebrow">批量操作</span>
-          <h2>批量新增书签</h2>
-        </div>
-        <button id="bulkAddCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
-      </div>
-      <label class="field-label" for="bulkAddInput">每行一个 URL，也支持“标题 | URL”</label>
-      <textarea id="bulkAddInput" class="field-input code-input" rows="7"></textarea>
-      <label class="field-label" for="bulkAddCollectionSelect">收藏夹</label>
-      <select id="bulkAddCollectionSelect" class="field-input" required></select>
-      <label class="field-label" for="bulkAddTagsInput">公共标签</label>
-      <input id="bulkAddTagsInput" class="field-input" type="text" placeholder="用逗号分隔，可留空">
-      <label class="field-label" for="bulkAddNoteInput">公共备注</label>
-      <textarea id="bulkAddNoteInput" class="field-input" rows="2"></textarea>
-      <div id="bulkAddErrors" class="form-error"></div>
-      <div class="dialog-actions">
-        <button id="bulkAddCancelButton" class="secondary-button" type="button">取消</button>
-        <button id="bulkAddSubmitButton" class="primary-button" type="submit">开始新增</button>
-      </div>
-    </form>
-  </dialog>
+<!-- 弹出层复用参考项目 .drawer 的材质（--nav-bg + saturate(2.2) blur(30px)），几何覆盖在 sidepanel.css -->
+<dialog id="editorDialog" class="app-dialog drawer" aria-labelledby="editorHeading">
+  <form id="editorForm" method="dialog" class="drawer__scroll sheet-form">
+    <div class="sheet-head">
+      <h2 id="editorHeading">保存书签</h2>
+      <button id="editorCloseButton" class="pbtn" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <label class="field-label" for="editorLinkInput">链接</label>
+    <input id="editorLinkInput" class="field-input" type="url" required>
+    <label class="field-label" for="editorTitleInput">标题</label>
+    <div class="field-inline">
+      <input id="editorTitleInput" class="field-input" type="text" maxlength="1000" placeholder="可留空">
+      <button id="optimizeEditorButton" class="pbtn pbtn--square" type="button" title="优化书签名和摘要" aria-label="优化书签名和摘要"><svg class="icon"><use href="#i-sparkles"/></svg><span class="spinner"></span></button>
+    </div>
+    <label class="field-label" for="editorCollectionSelect">收藏夹</label>
+    <select id="editorCollectionSelect" class="field-input" required></select>
+    <details id="editorAdvancedFields" class="details">
+      <summary>
+        <span>更多字段</span>
+        <svg class="icon details__chevron"><use href="#i-chevron-right"/></svg>
+      </summary>
+      <label class="field-label" for="editorTagsInput">标签</label>
+      <input id="editorTagsInput" class="field-input" type="text" placeholder="用逗号分隔">
+      <label class="field-label" for="editorNoteInput">备注</label>
+      <textarea id="editorNoteInput" class="field-input" rows="3" maxlength="10000"></textarea>
+      <label class="field-label" for="editorExcerptInput">摘要</label>
+      <textarea id="editorExcerptInput" class="field-input" rows="3" maxlength="10000"></textarea>
+    </details>
+    <p id="editorError" class="form-error"></p>
+    <div class="sheet-actions">
+      <button id="editorCancelButton" class="btn-pill btn-pill--quiet" type="button">取消</button>
+      <button id="editorSubmitButton" class="btn-pill" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
 
-  <dialog id="bulkEditDialog" class="app-dialog">
-    <form id="bulkEditForm" method="dialog">
-      <div class="dialog-heading">
-        <div>
-          <span class="eyebrow">批量操作</span>
-          <h2>批量编辑书签</h2>
-        </div>
-        <button id="bulkEditCloseButton" class="icon-button" type="button" aria-label="关闭">×</button>
-      </div>
-      <p class="dialog-help">只会应用勾选的字段；未勾选的字段保持原值。</p>
-      <label class="check-field"><input id="bulkApplyCollection" type="checkbox"> <span>移动到收藏夹</span></label>
-      <select id="bulkEditCollectionSelect" class="field-input" disabled></select>
-      <label class="check-field"><input id="bulkApplyTags" type="checkbox"> <span>替换标签</span></label>
-      <input id="bulkEditTagsInput" class="field-input" type="text" disabled placeholder="用逗号分隔；留空表示清除">
-      <label class="check-field"><input id="bulkApplyNote" type="checkbox"> <span>设置/清空备注</span></label>
-      <textarea id="bulkEditNoteInput" class="field-input" rows="2" disabled></textarea>
-      <label class="check-field"><input id="bulkApplyExcerpt" type="checkbox"> <span>设置/清空摘要</span></label>
-      <textarea id="bulkEditExcerptInput" class="field-input" rows="2" disabled></textarea>
-      <p id="bulkEditError" class="form-error"></p>
-      <div class="dialog-actions">
-        <button id="bulkEditCancelButton" class="secondary-button" type="button">取消</button>
-        <button id="bulkEditSubmitButton" class="primary-button" type="submit">应用修改</button>
-      </div>
-    </form>
-  </dialog>
+<dialog id="bulkAddDialog" class="app-dialog drawer" aria-labelledby="bulkAddHeading">
+  <form id="bulkAddForm" method="dialog" class="drawer__scroll sheet-form">
+    <div class="sheet-head">
+      <h2 id="bulkAddHeading">批量新增书签</h2>
+      <button id="bulkAddCloseButton" class="pbtn" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <label class="field-label" for="bulkAddInput">每行一个 URL，也支持“标题 | URL”</label>
+    <textarea id="bulkAddInput" class="field-input code-input" rows="7"></textarea>
+    <label class="field-label" for="bulkAddCollectionSelect">收藏夹</label>
+    <select id="bulkAddCollectionSelect" class="field-input" required></select>
+    <label class="field-label" for="bulkAddTagsInput">公共标签</label>
+    <input id="bulkAddTagsInput" class="field-input" type="text" placeholder="用逗号分隔，可留空">
+    <label class="field-label" for="bulkAddNoteInput">公共备注</label>
+    <textarea id="bulkAddNoteInput" class="field-input" rows="2"></textarea>
+    <div id="bulkAddErrors" class="form-error"></div>
+    <div class="sheet-actions">
+      <button id="bulkAddCancelButton" class="btn-pill btn-pill--quiet" type="button">取消</button>
+      <button id="bulkAddSubmitButton" class="btn-pill" type="submit">开始新增</button>
+    </div>
+  </form>
+</dialog>
 
-  <dialog id="confirmDialog" class="app-dialog confirm-dialog">
-    <form id="confirmForm" method="dialog">
-      <h2 id="confirmHeading">确认操作</h2>
-      <p id="confirmMessage"></p>
-      <div class="dialog-actions">
-        <button id="confirmCancelButton" class="secondary-button" type="button">取消</button>
-        <button id="confirmSubmitButton" class="danger-button" type="submit">确认</button>
-      </div>
-    </form>
-  </dialog>
+<dialog id="bulkEditDialog" class="app-dialog drawer" aria-labelledby="bulkEditHeading">
+  <form id="bulkEditForm" method="dialog" class="drawer__scroll sheet-form">
+    <div class="sheet-head">
+      <h2 id="bulkEditHeading">批量编辑书签</h2>
+      <button id="bulkEditCloseButton" class="pbtn" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="card-sub">只会应用勾选的字段；未勾选的字段保持原值。</p>
+    <label class="check-field"><input id="bulkApplyCollection" class="pick" type="checkbox"> <span>移动到收藏夹</span></label>
+    <select id="bulkEditCollectionSelect" class="field-input" disabled></select>
+    <label class="check-field"><input id="bulkApplyTags" class="pick" type="checkbox"> <span>替换标签</span></label>
+    <input id="bulkEditTagsInput" class="field-input" type="text" disabled placeholder="用逗号分隔；留空表示清除">
+    <label class="check-field"><input id="bulkApplyNote" class="pick" type="checkbox"> <span>设置/清空备注</span></label>
+    <textarea id="bulkEditNoteInput" class="field-input" rows="2" disabled></textarea>
+    <label class="check-field"><input id="bulkApplyExcerpt" class="pick" type="checkbox"> <span>设置/清空摘要</span></label>
+    <textarea id="bulkEditExcerptInput" class="field-input" rows="2" disabled></textarea>
+    <p id="bulkEditError" class="form-error"></p>
+    <div class="sheet-actions">
+      <button id="bulkEditCancelButton" class="btn-pill btn-pill--quiet" type="button">取消</button>
+      <button id="bulkEditSubmitButton" class="btn-pill" type="submit">应用修改</button>
+    </div>
+  </form>
+</dialog>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="sidepanel.js"></script>
+<dialog id="confirmDialog" class="app-dialog drawer drawer--confirm" aria-labelledby="confirmHeading">
+  <form id="confirmForm" method="dialog" class="drawer__scroll sheet-form">
+    <h2 id="confirmHeading">确认操作</h2>
+    <p id="confirmMessage" class="card-sub"></p>
+    <div class="sheet-actions">
+      <button id="confirmCancelButton" class="btn-pill btn-pill--quiet" type="button">取消</button>
+      <button id="confirmSubmitButton" class="btn-pill btn-pill--danger" type="submit">确认</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 材质取自参考项目 .volume-pop（--glass-btn-bg + saturate(2) blur(60px) + --glass-btn-border）；
+     行样式直接用它的 .nav-link / .nav-icon / .nav-label -->
+<div id="bookmarkMenu" class="volume-pop menu hidden" role="dialog" aria-label="书签操作">
+  <button id="menuOpenButton" class="nav-link" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-arrow-up-forward"/></svg></span><span class="nav-label">打开链接</span></button>
+  <button id="menuOptimizeButton" class="nav-link" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span><span class="nav-label">优化标题与摘要</span></button>
+  <button id="menuEditButton" class="nav-link" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-pencil"/></svg></span><span class="nav-label">编辑</span></button>
+  <button id="menuDeleteButton" class="nav-link nav-link--danger" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-trash"/></svg></span><span class="nav-label">删除</span></button>
+</div>
+
+<div id="toast" class="player toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="sidepanel.js"></script>
 </body>
 </html>

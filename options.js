@@ -10,8 +10,8 @@ import {
 } from './utils.mjs';
 
 const MODE_HINTS = {
-  local: '点击 ✨ 后在本地用规则整理书签名和摘要：即时完成，不联网、不产生费用。',
-  ai: '点击 ✨ 后调用你配置的模型重写书签名和摘要，需要 API Key，并且会产生相应费用。'
+  local: '点击「优化」后在本地用规则整理书签名和摘要：即时完成，不联网、不产生费用。',
+  ai: '点击「优化」后调用你配置的模型重写书签名和摘要，需要 API Key，并且会产生相应费用。'
 };
 
 const tokenInput = document.querySelector('#tokenInput');
@@ -76,11 +76,7 @@ function renderThemeColors(selected) {
     button.setAttribute('aria-label', color.label);
     button.setAttribute('role', 'radio');
     button.setAttribute('aria-checked', String(id === selected));
-    const check = document.createElement('span');
-    check.className = 'swatch-check';
-    check.textContent = '✓';
-    check.setAttribute('aria-hidden', 'true');
-    button.appendChild(check);
+    // 选中态由 CSS 的圆环表达，不需要额外的勾号字形。
     button.addEventListener('click', () => updateAppearance({ themeColor: id }));
     themeColorPicker.appendChild(button);
   });

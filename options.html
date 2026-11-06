@@ -4,145 +4,143 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raindrop Side Panel 设置</title>
+  <link rel="stylesheet" href="apple-music.css">
+  <link rel="stylesheet" href="ui-base.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <main class="settings-shell">
-    <section class="settings-card">
-      <div class="brand-row">
-        <img src="icons/icon48.png" alt="" class="brand-icon">
-        <div>
-          <h1>Raindrop Side Panel</h1>
-          <p>连接你的 Raindrop.io 账户</p>
-        </div>
+
+<!-- .page 复用参考项目的滚动容器（body 是 overflow:hidden） -->
+<main class="page options">
+  <div class="page-inner options-inner">
+    <div class="options-head">
+      <img class="options-head__icon" src="icons/icon48.png" alt="">
+      <div>
+        <h1 class="page-title options-title">Raindrop Side Panel</h1>
+        <p class="card-sub">连接你的 Raindrop.io 账户</p>
       </div>
+    </div>
 
-      <section class="settings-section token-section" aria-labelledby="tokenHeading">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">ACCOUNT</span>
-            <h2 id="tokenHeading">连接账户</h2>
-          </div>
-          <span class="section-number">01</span>
-        </div>
-        <div class="field-block">
-          <label for="tokenInput">Raindrop Test Token</label>
-          <div class="token-row">
-            <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Raindrop Test Token">
-            <button id="toggleTokenButton" class="ghost-button" type="button">显示</button>
-          </div>
-          <p class="help-text">填写 Raindrop 的 <strong>Test Token</strong>。该 Token 仅保存在本机扩展存储中，扩展直接访问 Raindrop API，不经过第三方服务器。</p>
-        </div>
-        <div class="actions">
-          <button id="saveButton" class="primary-button" type="button">验证并保存</button>
-          <button id="clearButton" class="secondary-button" type="button">清除 Token</button>
-        </div>
-        <div id="statusMessage" class="status-message" role="status"></div>
-        <div id="accountCard" class="account-card hidden">
-          <div class="status-dot"></div>
-          <div>
-            <strong id="accountName">已连接</strong>
-            <span id="accountEmail"></span>
-          </div>
-        </div>
-      </section>
+    <h2 class="shelf-title options-section-title" id="tokenHeading">连接账户</h2>
+    <p class="detail-foot options-help">
+      填写 Raindrop 的 <strong>Test Token</strong>。该 Token 仅保存在本机扩展存储中，扩展直接访问
+      Raindrop API，不经过第三方服务器。
+    </p>
+    <div class="options-field">
+      <label class="field-label" for="tokenInput">Raindrop Test Token</label>
+      <div class="options-row-inline">
+        <input id="tokenInput" class="field-input" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Raindrop Test Token">
+        <button id="toggleTokenButton" class="btn-pill btn-pill--quiet" type="button">显示</button>
+      </div>
+    </div>
+    <div class="options-actions">
+      <button id="saveButton" class="btn-pill" type="button">验证并保存</button>
+      <button id="clearButton" class="btn-pill btn-pill--quiet" type="button">清除 Token</button>
+    </div>
+    <div id="statusMessage" class="status-message" role="status"></div>
+    <div id="accountCard" class="account hidden">
+      <span class="account__dot"></span>
+      <span class="account__copy">
+        <strong id="accountName">已连接</strong>
+        <span id="accountEmail" class="card-sub"></span>
+      </span>
+    </div>
 
-      <section class="settings-section appearance-section" aria-labelledby="appearanceHeading">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">PERSONALIZE</span>
-            <h2 id="appearanceHeading">外观</h2>
-          </div>
-          <span class="section-number">02</span>
-        </div>
-        <div class="appearance-field">
-          <div>
+    <h2 class="shelf-title options-section-title" id="appearanceHeading">外观</h2>
+    <ul class="nav-group options-group">
+      <li class="nav-item">
+        <div class="nav-link options-row">
+          <span class="nav-label options-row__copy">
             <label for="themeModeSelect">明暗模式</label>
-            <span class="field-caption">跟随系统，或固定一种模式</span>
-          </div>
-          <select id="themeModeSelect">
-            <option value="system">跟随系统</option>
-            <option value="light">固定浅色</option>
-            <option value="dark">固定深色</option>
-          </select>
+            <span class="card-sub">跟随系统，或固定一种模式</span>
+          </span>
+          <select id="themeModeSelect" class="select-inline options-row__control"></select>
         </div>
-        <div class="appearance-field color-field">
-          <div>
+      </li>
+      <li class="nav-item">
+        <div class="nav-link options-row">
+          <span class="nav-label options-row__copy">
             <span class="field-label">主题色</span>
-            <span class="field-caption">选择界面的强调色</span>
-          </div>
-          <div id="themeColorPicker" class="theme-color-picker" role="radiogroup" aria-label="选择主题色"></div>
+            <span class="card-sub">选择界面的强调色</span>
+          </span>
+          <div id="themeColorPicker" class="swatches" role="radiogroup" aria-label="选择主题色"></div>
         </div>
-      </section>
+      </li>
+    </ul>
 
-      <section class="settings-section optimize-section" aria-labelledby="optimizeHeading">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">AUTOMATION</span>
-            <h2 id="optimizeHeading">优化方式</h2>
-          </div>
-          <span class="section-number">03</span>
-        </div>
-
-        <p class="help-text optimize-intro">在保存或编辑弹窗中点击 ✨ 按钮时，才会按下面的方式整理书签名和摘要。默认不改动任何内容。</p>
-
-        <div class="appearance-field">
-          <div>
+    <h2 class="shelf-title options-section-title" id="optimizeHeading">优化方式</h2>
+    <p class="detail-foot options-help">
+      在保存或编辑弹窗中点击「优化」按钮时，才会按下面的方式整理书签名和摘要。默认不改动任何内容。
+    </p>
+    <ul class="nav-group options-group">
+      <li class="nav-item">
+        <div class="nav-link options-row">
+          <span class="nav-label options-row__copy">
             <label for="optimizeModeSelect">优化方式</label>
-            <span class="field-caption">本地规则即时完成；AI 模型效果更好</span>
-          </div>
-          <select id="optimizeModeSelect"></select>
+            <span class="card-sub">本地规则即时完成；AI 模型效果更好</span>
+          </span>
+          <select id="optimizeModeSelect" class="select-inline options-row__control" aria-describedby="optimizeModeHint"></select>
         </div>
+      </li>
+    </ul>
+    <p id="optimizeModeHint" class="card-sub options-hint"></p>
 
-        <p id="optimizeModeHint" class="help-text"></p>
-
-        <div id="optimizeAiFields" class="optimize-ai-fields hidden">
-          <div class="token-row">
-            <div class="field-block grow">
-              <label for="optimizeApiBase">API 地址</label>
-              <input id="optimizeApiBase" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
-            </div>
-            <button id="grantOptimizeAccessButton" class="ghost-button" type="button">授权访问</button>
-          </div>
-          <p class="help-text">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
-          <div class="token-row">
-            <div class="field-block grow">
-              <label for="optimizeApiKey">API Key</label>
-              <input id="optimizeApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
-            </div>
-            <button id="toggleOptimizeKeyButton" class="ghost-button" type="button">显示</button>
-          </div>
-          <div class="appearance-field">
-            <div>
-              <label for="optimizeApiModel">模型</label>
-              <span class="field-caption">例如 gpt-4o-mini、gpt-4.1-mini</span>
-            </div>
-            <input id="optimizeApiModel" type="text" autocomplete="off" spellcheck="false">
-          </div>
-          <div class="appearance-field">
-            <div>
-              <label for="optimizeApiLanguage">摘要语言</label>
-              <span class="field-caption">影响 AI 生成的摘要语言</span>
-            </div>
-            <select id="optimizeApiLanguage"></select>
-          </div>
-          <p class="help-text">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你点击 ✨ 优化时才会发出。</p>
+    <div id="optimizeAiFields" class="options-group hidden">
+      <div class="options-field">
+        <label class="field-label" for="optimizeApiBase">API 地址</label>
+        <div class="options-row-inline">
+          <input id="optimizeApiBase" class="field-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
+          <button id="grantOptimizeAccessButton" class="btn-pill btn-pill--quiet" type="button">授权访问</button>
         </div>
-      </section>
-
-      <div class="guide">
-        <h2>如何获取 Test Token</h2>
-        <ol>
-          <li>打开 Raindrop.io 的设置。</li>
-          <li>进入“集成 → 开发者”页面。</li>
-          <li>创建开发者应用，然后点击 <strong>Create test token</strong>。</li>
-          <li>复制生成的 Test Token。</li>
-          <li>粘贴到上方，点击“验证并保存”。</li>
-        </ol>
-        <p>如果你主动撤销、重新生成 Token，或删除对应开发者应用，原 Test Token 会失效。若 Raindrop 后续调整入口，以其开发者文档为准。</p>
+        <p class="card-sub options-hint">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
       </div>
-    </section>
-  </main>
-  <script type="module" src="options.js"></script>
+
+      <div class="options-field">
+        <label class="field-label" for="optimizeApiKey">API Key</label>
+        <div class="options-row-inline">
+          <input id="optimizeApiKey" class="field-input" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+          <button id="toggleOptimizeKeyButton" class="btn-pill btn-pill--quiet" type="button">显示</button>
+        </div>
+      </div>
+
+      <ul class="nav-group">
+        <li class="nav-item">
+          <div class="nav-link options-row">
+            <span class="nav-label options-row__copy">
+              <label for="optimizeApiModel">模型</label>
+              <span class="card-sub">例如 gpt-4o-mini、gpt-4.1-mini</span>
+            </span>
+            <input id="optimizeApiModel" class="field-input options-row__input" type="text" autocomplete="off" spellcheck="false">
+          </div>
+        </li>
+        <li class="nav-item">
+          <div class="nav-link options-row">
+            <span class="nav-label options-row__copy">
+              <label for="optimizeApiLanguage">摘要语言</label>
+              <span class="card-sub">影响 AI 生成的摘要语言</span>
+            </span>
+            <select id="optimizeApiLanguage" class="select-inline options-row__control"></select>
+          </div>
+        </li>
+      </ul>
+      <p class="card-sub options-hint">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你点击「优化」时才会发出。</p>
+    </div>
+
+    <h2 class="shelf-title options-section-title" id="guideHeading">如何获取 Test Token</h2>
+    <ol class="detail-foot options-guide">
+      <li>打开 Raindrop.io 的设置。</li>
+      <li>进入“集成 → 开发者”页面。</li>
+      <li>创建开发者应用，然后点击 <strong>Create test token</strong>。</li>
+      <li>复制生成的 Test Token。</li>
+      <li>粘贴到上方，点击“验证并保存”。</li>
+    </ol>
+    <p class="detail-foot options-help">
+      如果你主动撤销、重新生成 Token，或删除对应开发者应用，原 Test Token 会失效。
+      若 Raindrop 后续调整入口，以其开发者文档为准。
+    </p>
+  </div>
+</main>
+
+<script type="module" src="options.js"></script>
 </body>
 </html>

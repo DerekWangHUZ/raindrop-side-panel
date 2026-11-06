@@ -1,293 +1,456 @@
-:root {
-  color-scheme: light;
-  --bg: #f2f2f7;
-  --panel: rgba(255, 255, 255, .74);
-  --panel-solid: #ffffff;
-  --field: rgba(118, 118, 128, .12);
-  --text: #1c1c1e;
-  --muted: #6e6e73;
-  --border: rgba(60, 60, 67, .16);
-  --accent: #6d5dfc;
-  --accent-hover: #5c4ee1;
-  --accent-soft: rgba(109, 93, 252, .11);
-  --shadow: 0 12px 32px rgba(20, 20, 24, .08);
-  --danger: #c83349;
-  --danger-soft: rgba(200, 51, 73, .11);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* ============================================================
+   侧边栏 —— 只写版式、几何覆盖与参考项目没有的新组件
+   材质、字阶、圆角、间距节奏、hover/选中态一律来自 apple-music.css。
+   结构：先「几何覆盖」（每条都注明来源类），再「新组件」。
+   ============================================================ */
+
+/* ================= 中和参考项目的移动端布局切换 =================
+   参考项目在 ≤500px 时会把桌面侧栏与播放条整个隐藏，改用 .mobile-topbar +
+   .drawer + .mini-player 那套手机外壳。插件侧边栏本身就是窄布局，没有那套外壳，
+   所以对复用的类要把这条 display:none 中和掉（这里的选择器与来源同为 0,1,0 权重，
+   靠 sidepanel.css 在 apple-music.css 之后取胜）。 */
+
+.panel { display: flex; }
+.save-pill,
+.selection-bar,
+.toast { display: flex; }
+
+/* ================= 几何覆盖 ================= */
+
+/* 来源 .sidebar：position:fixed + left/top/bottom:--sb-gap + width:--sb-w。
+   面板只需要补 right 并放开固定宽度，其余（离屏 12px、圆角 20px、玻璃、投影）全部继承。 */
+.panel {
+  right: var(--sb-gap);
+  width: auto;
 }
 
-:root[data-theme-effective="dark"] {
-  color-scheme: dark;
-  --bg: #151517;
-  --panel: rgba(36, 36, 38, .78);
-  --panel-solid: #242426;
-  --field: rgba(118, 118, 128, .24);
-  --text: #f5f5f7;
-  --muted: #98989d;
-  --border: rgba(235, 235, 245, .15);
-  --accent: #8a7cff;
-  --accent-hover: #9b90ff;
-  --accent-soft: rgba(138, 124, 255, .16);
-  --shadow: 0 16px 38px rgba(0, 0, 0, .27);
-  --danger: #ff7e8d;
-  --danger-soft: rgba(255, 126, 141, .15);
+/* 来源 .sidebar__scroll：flex:1 + 5px 细滚动条（保留）。只改内边距：
+   参考项目是 17px 20px 10px，面板窄一些，并且分组的左右留白由各自组件负责。 */
+.panel__scroll { padding: 12px 0 22px; }
+
+/* 来源 .player（桌面播放条，668px 固定 + 居中 translateX）。面板内它是普通一行。
+   左右内边距按圆角几何算：胶囊两端是 28px 半径（56px 高的一半）的圆帽，
+   42px 高的封面在竖直方向占 y=7..49，要让它的左上角落在弧线里还留出 5px 以上余量，
+   横向至少需要 20px 内缩 —— 12/14px 时只有 2px 余量，看上去就是「图标和圆角撞在一起」。 */
+.save-pill {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: auto;
+  height: 56px;
+  margin: 16px 16px 0;
+  padding: 0 20px;
 }
 
-:root[data-theme-color="blue"] { --accent: #2563eb; --accent-hover: #1d4ed8; --accent-soft: rgba(37, 99, 235, .11); }
-:root[data-theme-color="teal"] { --accent: #0f766e; --accent-hover: #115e59; --accent-soft: rgba(15, 118, 110, .11); }
-:root[data-theme-color="green"] { --accent: #15803d; --accent-hover: #166534; --accent-soft: rgba(21, 128, 61, .11); }
-:root[data-theme-color="orange"] { --accent: #c2410c; --accent-hover: #9a3412; --accent-soft: rgba(194, 65, 12, .11); }
-:root[data-theme-color="rose"] { --accent: #be123c; --accent-hover: #9f1239; --accent-soft: rgba(190, 18, 60, .11); }
-:root[data-theme-color="gray"] { --accent: #5f6368; --accent-hover: #464a4f; --accent-soft: rgba(95, 99, 104, .12); }
-:root[data-theme-effective="dark"][data-theme-color="blue"] { --accent: #60a5fa; --accent-hover: #93c5fd; --accent-soft: rgba(96, 165, 250, .16); }
-:root[data-theme-effective="dark"][data-theme-color="teal"] { --accent: #2dd4bf; --accent-hover: #5eead4; --accent-soft: rgba(45, 212, 191, .16); }
-:root[data-theme-effective="dark"][data-theme-color="green"] { --accent: #4ade80; --accent-hover: #86efac; --accent-soft: rgba(74, 222, 128, .16); }
-:root[data-theme-effective="dark"][data-theme-color="orange"] { --accent: #fb923c; --accent-hover: #fdba74; --accent-soft: rgba(251, 146, 60, .16); }
-:root[data-theme-effective="dark"][data-theme-color="rose"] { --accent: #fb7185; --accent-hover: #fda4af; --accent-soft: rgba(251, 113, 133, .16); }
-:root[data-theme-effective="dark"][data-theme-color="gray"] { --accent: #a3aab5; --accent-hover: #c4cad3; --accent-soft: rgba(163, 170, 181, .16); }
-
-* { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
-body { background: var(--bg); color: var(--text); }
-button, input, select, textarea { font: inherit; }
-button { color: inherit; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 3px solid var(--accent-soft);
-  outline-offset: 2px;
+/* 来源 .player：吸底胶囊，只改左右与居中方式；右侧同样按圆帽几何留边。 */
+.selection-bar {
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  transform: none;
+  width: auto;
+  gap: 8px;
+  padding: 0 14px 0 20px;
 }
-.hidden { display: none !important; }
 
-.app-shell { padding: 12px; }
-.topbar, .section-heading, .list-heading, .action-row { display: flex; align-items: center; justify-content: space-between; }
-.topbar { min-height: 40px; margin-bottom: 14px; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { width: 34px; height: 34px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, .10); }
-.brand-title { font-size: 14px; font-weight: 750; letter-spacing: -.02em; }
-.brand-subtitle { color: var(--muted); font-size: 11px; margin-top: 2px; }
-.icon-button {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--panel);
-  cursor: pointer;
-  transition: transform .22s cubic-bezier(.22, 1, .36, 1), background-color .18s ease, border-color .18s ease;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
+/* 来源 .player：胶囊 Toast。 */
+.toast {
+  left: 50%;
+  right: auto;
+  bottom: 16px;
+  width: auto;
+  height: auto;
+  min-height: 40px;
+  padding: 10px 18px;
+  transform: translateX(-50%) translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+  font-size: 13px;
+  text-align: center;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.icon-button:hover { transform: translateY(-1px); background: var(--panel-solid); }
-.icon-button:active { transform: scale(.94); }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { background: var(--danger); border-color: transparent; color: #fff; }
 
-.setup-card, .save-card, .collection-panel, .bookmark-card {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
-  backdrop-filter: blur(22px) saturate(140%);
+/* 来源 .volume-pop：宽 76 高 40 的胶囊音量条。菜单要竖排多行，只改几何，
+   并把底色加厚 —— 参考项目那个音量浮层只有一行控件，菜单是四行文字，
+   在 backdrop-filter 不可用的环境（部分 GPU/省电配置）下必须仍然读得清。 */
+.menu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  width: auto;
+  min-width: 196px;
+  height: auto;
+  padding: 5px;
+  border-radius: 14px;
+  flex-direction: column;
+  align-items: stretch;
+  background: rgba(30, 30, 32, 0.86);
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 60;
+  animation: ui-menu-in 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.setup-card { padding: 28px 18px; text-align: center; }
-.setup-icon { font-size: 28px; }
-.setup-card h1 { margin: 10px 0 6px; font-size: 18px; letter-spacing: -.02em; }
-.setup-card p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+:root[data-theme-effective="light"] .menu { background: rgba(250, 250, 250, 0.94); }
+@keyframes ui-menu-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
 
-.main-content { display: flex; flex-direction: column; gap: 12px; }
-.search-row { display: flex; gap: 8px; }
-.search-box {
+/* 来源 .drawer（全屏抽屉）。对话框只需要底部一段，并沿用 .drawer 的玻璃材质；
+   底色同样加厚：弹层里是整张表单，60% 透明在没有 backdrop-filter 时读不清。 */
+dialog.app-dialog.drawer {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--hairline);
+  background: rgba(28, 28, 30, 0.92);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+:root[data-theme-effective="light"] dialog.app-dialog.drawer { background: rgba(250, 250, 250, 0.95); }
+dialog.app-dialog.drawer:not([open]) { display: none; }
+
+/* 来源 .shelf-title：桌面用 312px 左内边距躲开侧栏，面板里改成等宽内边距。
+   这一行必须始终是单行：标题省略、计数不折行、工具区固定宽度。 */
+.shelf-title--group {
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 0;
-  height: 40px;
+  flex-wrap: nowrap;
   gap: 8px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--panel);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  padding: 0 16px;
+  margin: 22px 0 6px;
+  line-height: 1.3;
 }
-.search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); background: var(--panel-solid); }
-.search-icon { color: var(--muted); font-size: 18px; line-height: 1; }
-.search-box input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); }
-.search-box input::placeholder { color: var(--muted); }
-.refresh-button { flex: 0 0 auto; width: 40px; height: 40px; }
-.sort-control select { height: 32px; min-width: 132px; padding: 0 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--field); color: var(--text); outline: 0; font-size: 11px; }
-.sort-control select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.shelf-title--group:first-child { margin-top: 4px; }
 
-.save-card {
+/* 来源 .songlist：桌面用 312px/24px 外边距，面板里等宽内缩。 */
+.songlist { margin: 0 16px; }
+
+/* 来源 .search-field：固定 496px 宽 → 撑满并留出与其它分组一致的边距。 */
+.search-field { width: auto; margin: 8px 16px 0; }
+
+/* ================= 新组件（参考项目没有的） ================= */
+
+.main { display: block; }
+
+/* 顶栏：品牌沿用 .sidebar__logo* 的字号与间距，只排布三个动作按钮 */
+.panel__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 50px;
+  padding: 0 10px 0 18px;
+  background: var(--nav-bg);
+  -webkit-backdrop-filter: saturate(2.2) blur(16px);
+  backdrop-filter: saturate(2.2) blur(16px);
+  border-bottom: 1px solid var(--hairline);
+}
+.panel__head .sidebar__logo { margin-right: auto; }
+.panel__head .sidebar__logo-apple { border-radius: 6px; }
+.panel__head-actions { display: flex; align-items: center; gap: 2px; }
+
+/* 来源 .pbtn：参考项目里它是播放器的传输键，浅色主题下取 Apple 红（--transport）。
+   面板没有播放器，所以只复用它的几何（32×26 / 圆角 6 / 居中）与 hover，
+   颜色换成中性文字色 —— 否则列表每行一个红点，噪声太大。 */
+.pbtn {
+  position: relative;
+  color: var(--text-dim);
+}
+.pbtn:hover { color: var(--text); opacity: 1; }
+.pbtn .icon { width: 19px; height: 19px; }
+.pbtn .spinner { position: absolute; top: 50%; left: 50%; margin: -7px 0 0 -7px; }
+.pbtn--square {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--nav-selected);
+}
+
+/* 未连接引导：沿用参考的字阶与 .btn-pill */
+.setup { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 52px 26px 0; text-align: center; }
+.setup__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--nav-selected);
+  color: var(--text-dim2);
+}
+.setup__icon .icon { width: 26px; height: 26px; }
+.setup__title { margin: 4px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.setup .detail-foot { padding: 0; text-align: center; }
+
+/* 保存胶囊内部的封面方框。内容同样只有「favicon」或「首字」其中之一，
+   由 renderSaveArt / coverContent 决定，不再靠层叠遮挡。 */
+.save-pill__art { display: grid; place-items: center; overflow: hidden; background: var(--nav-selected); }
+.save-pill__art .cover-initial { font-size: 16px; }
+.save-pill__meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin: 0 10px; }
+.save-pill__meta .lcd-title, .save-pill__meta .lcd-artist { margin: 0; }
+.save-pill .btn-pill { flex: none; }
+
+/* 收藏夹分组标题里的折叠开关 */
+.tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.tree-toggle__chevron { width: 15px; height: 15px; color: var(--text-dim); transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+.tree-toggle[aria-expanded="false"] .tree-toggle__chevron { transform: rotate(-90deg); }
+.tree-current { flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-body .nav-group { padding: 0 12px; }
+.tree-tools { display: flex; justify-content: flex-end; padding: 2px 16px 0; }
+
+/* 收藏夹行：li 直接复用参考项目的 .nav-item / .nav-item--selected > .nav-link 选中态，
+   折叠开关用绝对定位放进链接的左内边距里（两个都是 button，必须同级，不能嵌套）。 */
+.collection-item { position: relative; }
+.collection-item > .nav-link { padding-left: calc(30px + var(--depth, 0) * 14px); }
+.collection-node { display: block; }
+.collection-toggle {
+  position: absolute;
+  left: calc(var(--depth, 0) * 14px + 5px);
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 26px;
+  transform: translateY(-50%);
+  color: var(--text-dim2);
+  z-index: 1;
+}
+.collection-toggle .icon { width: 12px; height: 12px; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+.collection-toggle[data-expanded="false"] .icon { transform: rotate(-90deg); }
+.collection-dot {
+  position: absolute;
+  left: calc(var(--depth, 0) * 14px + 13px);
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-dim2);
+  transform: translateY(-50%);
+}
+/* 特殊行（全部书签 / 未分类）用参考项目的 .nav-icon 尺寸，只是改为绝对定位 */
+.collection-glyph {
+  position: absolute;
+  left: calc(var(--depth, 0) * 14px + 8px);
+  top: 50%;
+  margin: 0;
+  transform: translateY(-50%);
+}
+.collection-glyph .icon { width: 17px; height: 17px; }
+.nav-item--selected .collection-glyph { color: var(--accent-blue); }
+.collection-group-title {
+  padding: 10px 8px 2px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.collection-label { flex: 1; min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 列表头：勾选 + 标题 + 数量 + 排序。
+   #resultCount 与 .tree-current 都带着参考项目的 .card-sub，而 .card-sub 是
+   两行截断盒（display:-webkit-box + line-clamp:2），放在这行里会把「7 项」
+   折成「7」「项」两行 —— 这里改回普通块并强制单行。 */
+.list-pick { display: flex; align-items: center; gap: 9px; flex: 1 1 auto; min-width: 0; cursor: pointer; }
+.list-pick > #listTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 计数与「收藏夹」右侧的当前名都带着参考项目的 .card-sub，而 .card-sub 是
+   两行截断盒（display:-webkit-box + line-clamp:2），会把「7 项」折成两行 —— 
+   这里改回普通块并强制单行。 */
+.list-pick > #resultCount {
+  display: block;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-current {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shelf-title__tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+.loading-label { white-space: nowrap; }
+
+/* 20px 圆形复选框（参考项目的 .avatar / .btn-circle 是同一套圆形语言） */
+.pick {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin: 0;
+  border: 1.5px solid var(--text-dim2);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.pick:hover { border-color: var(--text-dim); }
+.pick:checked {
+  border-color: transparent;
+  background-color: var(--accent-blue);
+  background-image: var(--pick-check);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+.pick:indeterminate {
+  border-color: transparent;
+  background-color: var(--accent-blue);
+  background-image: linear-gradient(var(--pick-glyph), var(--pick-glyph));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 2px;
+}
+.pick:disabled { opacity: 0.5; cursor: default; }
+
+/* 排序下拉的形状来自 ui-base.css 的 .select-inline，这里只收窄一点宽度 */
+.select-inline { max-width: 112px; }
+
+/* 书签行：.song-row 提供 52px / gap 14 / 圆角 6 / hover --nav-hover，
+   这里只补「封面 + 两行文字 + •••」的排布与标签 */
+.song-row { cursor: pointer; }
+.song-row__pick { align-self: center; }
+/* 参考项目的 .song-row__t .sub 只被父级裁切，这里补上省略号 */
+.song-row__t .sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tags { display: inline-flex; gap: 5px; margin-left: 6px; vertical-align: 1px; }
+.song-row__more { flex: none; }
+.song-row:hover .song-row__more, .song-row:focus-within .song-row__more { color: var(--text); }
+
+/* 封面方块：里面只放「照片」或「首字」其中之一（见 coverContent）。
+   参考项目把占位底色硬编码成深色 #2a2a2c（浅色主题下是黑方块），换成本主题的 tint。 */
+.song-row__cover {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--nav-selected);
+}
+.cover-initial {
+  color: var(--accent-blue);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cover-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 标签：用参考项目唯一的中性 tint（--nav-selected），不引入新的强调色 */
+.tag {
+  max-width: 84px;
+  padding: 1px 7px;
+  border-radius: 1000px;
+  background: var(--nav-selected);
+  color: var(--text-dim2);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 载入更多与空状态 */
+.load-more { align-self: stretch; margin: 14px 16px 0; }
+.empty-note { display: flex; flex-direction: column; gap: 4px; text-align: center; padding: 48px 24px; }
+
+/* 选择条内部 */
+.selection-bar__spacer { flex: 1; }
+.selection-bar__count, #selectionCount { font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+/* 弹出层内部 */
+.sheet-form { gap: 6px; padding: 16px 16px 18px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.sheet-head h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.sheet-form .card-sub { margin: 0; }
+.sheet-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.field-inline { display: flex; align-items: center; gap: 8px; }
+.field-inline .field-input { flex: 1; min-width: 0; }
+.drawer--confirm .sheet-form { padding-top: 20px; }
+.drawer--confirm h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+.details > summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-}
-.save-card-copy { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
-.save-card-copy strong { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.eyebrow { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
-.muted, .count-label, .loading-label { color: var(--muted); font-size: 11px; }
-.primary-button, .secondary-button, .danger-button {
-  border-radius: 12px;
+  gap: 8px;
+  list-style: none;
+  padding: 4px 0;
+  color: var(--accent-blue);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  transition: transform .22s cubic-bezier(.22, 1, .36, 1), opacity .18s ease, background-color .18s ease, border-color .18s ease;
 }
-.primary-button { padding: 10px 13px; border: 0; background: var(--accent); color: #fff; }
-.primary-button:hover { transform: translateY(-1px); background: var(--accent-hover); }
-.primary-button:active, .secondary-button:active, .danger-button:active { transform: scale(.97); }
-.secondary-button { padding: 9px 11px; border: 1px solid var(--border); background: var(--field); }
-.secondary-button:hover { background: var(--panel-solid); }
-.danger-button { padding: 9px 11px; border: 0; background: var(--danger); color: #fff; }
-.danger-button:hover { opacity: .88; }
-.primary-button:disabled, .secondary-button:disabled, .danger-button:disabled { opacity: .55; cursor: wait; transform: none; }
-.save-button { flex: 0 0 auto; white-space: nowrap; }
+.details > summary::-webkit-details-marker { display: none; }
+.details__chevron { width: 14px; height: 14px; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+.details[open] .details__chevron { transform: rotate(90deg); }
 
-.collection-panel { padding: 11px; box-shadow: none; }
-.section-heading { padding: 0 3px 8px; }
-.section-heading strong { font-size: 12px; }
-.text-button { padding: 3px 4px; border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 11px; }
-.text-button:hover { background: var(--accent-soft); border-radius: 7px; }
-.collection-tree { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; }
-.collection-group-title { padding: 8px 8px 3px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.collection-item { display: flex; align-items: center; gap: 3px; min-height: 31px; padding-left: calc(var(--depth, 0) * 14px); border-radius: 9px; }
-.collection-item.selected { background: var(--accent-soft); }
-.collection-toggle { display: grid; place-items: center; width: 22px; height: 26px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; }
-.collection-toggle:disabled { cursor: default; }
-.collection-toggle.spacer { display: block; }
-.collection-label { flex: 1; min-width: 0; overflow: hidden; padding: 5px 6px; border: 0; background: transparent; color: var(--text); cursor: pointer; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+/* 弹出菜单里的行 */
+.menu .nav-link { width: 100%; }
+.nav-link--danger, .nav-link--danger .nav-icon { color: var(--danger); }
+.nav-link--danger:hover { background: var(--danger-soft); }
 
-.action-row { flex-wrap: wrap; gap: 8px; min-height: 34px; padding: 0 2px; }
-.selection-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+/* .btn-pill 的变体在 ui-base.css（两个页面共用） */
 
-.list-heading { min-height: 32px; gap: 10px; padding: 0 2px; }
-.select-all-label { display: flex; align-items: center; min-width: 0; gap: 7px; cursor: pointer; }
-.select-all-label > span { min-width: 0; }
-.list-heading strong { font-size: 13px; }
-.list-tools { display: flex; align-items: center; justify-content: flex-end; min-width: 0; gap: 7px; }
-.count-label, .loading-label { margin-left: 6px; }
-.bookmark-list { display: flex; flex-direction: column; gap: 9px; }
-.bookmark-card {
-  display: grid;
-  grid-template-columns: 18px 52px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 9px;
-  padding: 10px;
-  cursor: pointer;
-  transition: transform .22s cubic-bezier(.22, 1, .36, 1), border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
-}
-.bookmark-card:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 38%, var(--border)); background: var(--panel-solid); }
-.bookmark-card:active { transform: scale(.99); }
-.bookmark-select { margin-top: 19px; accent-color: var(--accent); cursor: pointer; }
-.bookmark-cover { width: 52px; height: 52px; object-fit: cover; border-radius: 11px; background: var(--accent-soft); }
-.bookmark-fallback { display: grid; place-items: center; color: var(--accent); font-size: 20px; font-weight: 800; }
-.bookmark-main { min-width: 0; }
-.bookmark-title { overflow: hidden; color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.bookmark-domain { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.bookmark-excerpt { display: -webkit-box; margin-top: 5px; overflow: hidden; color: var(--muted); font-size: 11px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.tag { max-width: 100px; overflow: hidden; padding: 2px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.bookmark-actions { display: flex; gap: 2px; opacity: .62; }
-.bookmark-card:hover .bookmark-actions, .bookmark-card:focus-within .bookmark-actions { opacity: 1; }
-.card-action { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
-.card-action:hover { background: var(--accent-soft); color: var(--accent); }
-.danger-text { color: var(--danger); }
-.load-more { width: 100%; }
-.empty-state { display: flex; flex-direction: column; gap: 5px; padding: 30px 12px; color: var(--muted); text-align: center; font-size: 12px; }
-.empty-state strong { color: var(--text); }
-.empty-icon { font-size: 24px; }
+/* ================= 自适应（对齐参考项目的断点思路） ================= */
 
-.app-dialog {
-  width: min(440px, calc(100% - 28px));
-  max-height: calc(100vh - 28px);
-  overflow: auto;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--panel-solid);
-  color: var(--text);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, .28);
-  -webkit-backdrop-filter: blur(26px) saturate(145%);
-  backdrop-filter: blur(26px) saturate(145%);
+@media (max-width: 420px) {
+  /* 排序下拉收窄，把宽度让给收藏夹名，保证列表头仍是单行 */
+  .select-inline { max-width: 84px; }
 }
-.app-dialog::backdrop { background: rgba(20, 20, 24, .42); }
-.app-dialog[open] { animation: dialog-in .22s cubic-bezier(.22, 1, .36, 1); }
-@keyframes dialog-in {
-  from { opacity: 0; transform: scale(.97) translateY(6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.app-dialog form { display: flex; flex-direction: column; gap: 7px; }
-.dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 5px; }
-.dialog-heading h2, .confirm-dialog h2 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.02em; }
-.field-label { margin-top: 4px; font-size: 11px; font-weight: 700; }
-.field-input { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 11px; outline: 0; background: var(--field); color: var(--text); transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
-.field-input:focus { border-color: var(--accent); background: var(--panel-solid); box-shadow: 0 0 0 4px var(--accent-soft); }
-textarea.field-input { min-height: 58px; resize: vertical; }
-.code-input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
-.field-inline { display: flex; align-items: center; gap: 6px; }
-.field-inline .field-input { flex: 1; min-width: 0; }
-.inline-optimize {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--field);
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
-}
-.inline-optimize:hover { border-color: var(--accent); background: var(--accent-soft); }
-.inline-optimize:active { transform: scale(.94); }
-.inline-optimize:disabled { cursor: wait; opacity: .55; }
-.advanced-fields { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
-.advanced-fields summary { margin-bottom: 4px; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 700; }
-.check-field { display: flex; align-items: center; gap: 7px; margin-top: 4px; font-size: 12px; font-weight: 700; }
-.check-field input { accent-color: var(--accent); }
-.dialog-help { margin: 0 0 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.form-error { min-height: 18px; margin: 2px 0 0; color: var(--danger); font-size: 11px; line-height: 1.45; white-space: pre-line; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 7px; }
-.confirm-dialog { max-width: 360px; }
-.confirm-dialog p { color: var(--muted); font-size: 13px; line-height: 1.5; }
-.toast { position: fixed; right: 14px; bottom: 14px; left: 14px; z-index: 10; padding: 10px 12px; transform: translateY(24px); border-radius: 13px; background: #1f2025; color: #fff; box-shadow: 0 12px 34px rgba(0, 0, 0, .25); opacity: 0; pointer-events: none; font-size: 12px; transition: opacity .18s ease, transform .22s cubic-bezier(.22, 1, .36, 1); }
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast.error { background: var(--danger); }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
-    animation-duration: .01ms !important;
-  }
-  .bookmark-card:hover, .icon-button:hover, .primary-button:hover { transform: none; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .icon-button, .search-box, .setup-card, .save-card, .collection-panel, .bookmark-card, .app-dialog {
-    background: var(--panel-solid);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-@media (prefers-contrast: more) {
-  .icon-button, .search-box, .setup-card, .save-card, .collection-panel, .bookmark-card, .app-dialog, .field-input { border-color: currentColor; }
-}
 @media (max-width: 360px) {
-  .app-shell { padding: 10px; }
-  .save-card { align-items: flex-start; flex-direction: column; }
-  .save-button { width: 100%; }
-  .bookmark-card { grid-template-columns: 18px 44px minmax(0, 1fr); }
-  .bookmark-cover { width: 44px; height: 44px; }
-  .bookmark-actions { grid-column: 3; justify-content: flex-end; }
-  .selection-actions .muted { display: none; }
+  .panel { --sb-gap: 8px; }
+  .save-pill, .search-field { margin-left: 12px; margin-right: 12px; }
+  .shelf-title--group { padding: 0 12px; }
+  .songlist { margin: 0 12px; }
+  .tree-body .nav-group { padding: 0 8px; }
+  .song-row { gap: 10px; }
+  .tag { display: none; }
+  /* 窄屏靠「封面与按钮各小一圈」而不是压缩内缩来省宽度：
+     内缩低于圆帽几何需要的量，图标就会又贴回圆角上 */
+  .save-pill { padding: 0 16px; }
+  .save-pill__art { width: 38px; height: 38px; }
+  .save-pill .btn-pill { padding: 0 16px; }
+  .btn-pill--small { padding: 0 10px; }
+}
+
+@media (max-width: 300px) {
+  .song-row__t .sub { display: none; }
+  #resultCount { display: none; }
 }

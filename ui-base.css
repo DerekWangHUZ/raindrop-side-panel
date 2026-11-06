@@ -1,0 +1,186 @@
+/* ============================================================
+   插件自有基础层
+   apple-music.css 是从参考项目逐字 vendor 的，不要动；
+   参考项目没有的东西（状态类、键盘焦点、共享表单控件、无障碍偏好、
+   dialog 重置、加载指示）全部放在这里，页面样式表只写版式与几何。
+   ============================================================ */
+
+/* ---------- 状态与辅助 ---------- */
+
+/* 参考项目里没有下拉控件与复选框，这两样只能由插件补。
+   data URI 用不了 currentColor，故按主题各存一份；勾选符号的颜色跟着强调色走：
+   浅色主题的强调色偏深 → 白勾；深色主题的强调色偏浅 → 深勾。 */
+:root {
+  --pick-glyph: #1f1f1f;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-opacity='.55' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --pick-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f1f1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6.6 9.3 17.3 4 12'/%3E%3C/svg%3E");
+}
+:root[data-theme-effective="light"] {
+  --pick-glyph: #ffffff;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-opacity='.5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --pick-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6.6 9.3 17.3 4 12'/%3E%3C/svg%3E");
+}
+
+.hidden { display: none !important; }
+.icon-sprite { display: none; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 参考项目为了方便拖拽把正文设为不可选中；书签标题与链接需要能选中复制。 */
+.song-row__t, .song-row__t .sub, .lcd-title, .lcd-artist, .detail-foot, .help, .guide { user-select: text; }
+input, textarea, select { user-select: auto; }
+
+/* ---------- 键盘焦点（参考项目没有这一层） ---------- */
+
+:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+button:focus:not(:focus-visible) { outline: none; }
+
+/* ---------- 共享表单控件 ---------- */
+
+.field-label { display: block; font-size: 13px; font-weight: 600; }
+
+.field-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--nav-selected);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.field-input::placeholder { color: var(--text-dim2); }
+.field-input:focus { border-color: var(--accent-blue); background: var(--bg); }
+.field-input:focus-visible { box-shadow: 0 0 0 3px var(--accent-blue); }
+textarea.field-input { height: auto; min-height: 62px; padding: 9px 12px; resize: vertical; line-height: 1.5; }
+select.field-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image: var(--select-arrow);
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+}
+
+.check-field { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
+
+/* .btn-pill 的共享变体：两个页面都要用，所以放在这里而不是某个页面的样式表。
+   深色下参考的 .btn-pill 是白色实心，次要动作必须靠描边与灰字拉开层级。 */
+.btn-pill--small { height: 30px; padding: 0 14px; font-size: 12px; }
+.btn-pill--quiet {
+  border: 1px solid var(--hairline);
+  background: var(--nav-selected);
+  color: var(--text-dim);
+}
+.btn-pill--quiet:hover { background: var(--nav-hover); color: var(--text); }
+.btn-pill--danger { background: var(--danger); color: #fff; }
+.btn-pill--danger:hover { opacity: 0.88; }
+.btn-pill:disabled { opacity: 0.5; cursor: wait; }
+
+/* 行内紧凑下拉：参考项目没有下拉控件，形状沿用 .field-input 的语言 */
+.select-inline {
+  height: 28px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background-color: var(--nav-selected);
+  background-image: var(--select-arrow);
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 12px;
+  color: var(--text-dim);
+  font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.select-inline:hover { color: var(--text); }
+.form-error {
+  min-height: 18px;
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.form-error:empty { min-height: 0; }
+.code-input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+
+/* ---------- 底部弹出层（<dialog> 重置，材质由 .drawer 提供） ---------- */
+
+dialog.app-dialog {
+  width: auto;
+  max-width: none;
+  max-height: none;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  overflow: hidden;
+}
+dialog.app-dialog::backdrop { background: rgba(0, 0, 0, 0.32); }
+dialog.app-dialog[open] { animation: ui-sheet-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ui-sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- 加载指示 ---------- */
+
+.spinner {
+  display: none;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 1.6px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ui-spin 0.7s linear infinite;
+}
+.is-loading > .icon, .is-loading .icon { visibility: hidden; }
+.is-loading .spinner { display: block; }
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+
+/* ---------- 无障碍偏好 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* 参考项目的材质全靠 backdrop-filter；关掉透明后改用实色，避免糊成一片。 */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-theme-effective="light"] {
+    --nav-bg: var(--bg);
+  }
+  .panel, .panel__head, .app-dialog, .selection-bar, .save-pill, .menu, .toast {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: var(--bg) !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-theme-effective="light"] {
+    --hairline: currentColor;
+    --nav-selected: transparent;
+  }
+  .field-input, .menu, .toast { border-color: currentColor; }
+}
