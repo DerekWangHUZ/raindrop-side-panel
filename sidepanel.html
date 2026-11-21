@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raindrop Side Panel</title>
-  <link rel="stylesheet" href="apple-music.css">
+  <link rel="stylesheet" href="src/vendor/solid-glass.css">
   <link rel="stylesheet" href="ui-base.css">
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
 
-<!-- 图标 sprite 取自参考项目 index.html；只有 i-settings / i-pencil / i-sparkles / i-trash
+<!-- 图标 sprite 取自 AppleMusicUI 参考项目 index.html；只有 i-settings / i-pencil / i-sparkles / i-trash
      这 4 个是它没有的（见 README「界面来源」）。 -->
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.6" fill="none" stroke="currentColor" stroke-width="1.9"/><line x1="15.4" y1="15.4" x2="20.2" y2="20.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
@@ -30,7 +30,7 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.2h17M18.6 6.2l-.9 13.1a2 2 0 0 1-2 1.9H8.3a2 2 0 0 1-2-1.9L5.4 6.2"/><path d="M8.6 6.2V4.3a2 2 0 0 1 2-2h2.8a2 2 0 0 1 2 2v1.9M10.3 10.6v6.4M13.7 10.6v6.4"/></g></symbol>
 </svg>
 
-<!-- .sidebar 提供材质（--nav-bg + saturate(2.2) blur(16px) + 圆角 20px + --panel-shadow + 离屏 --sb-gap），
+<!-- .sidebar 提供材质（--nav-bg 玻璃 + rim/hairline/shadow 收光 + 圆角 20px + 离屏 --sb-gap），
      .panel 只覆盖几何（补一个 right、放开固定宽度）。覆盖清单见 sidepanel.css。 -->
 <div class="sidebar panel">
   <header class="panel__head">
@@ -60,8 +60,8 @@
         <input id="searchInput" type="search" autocomplete="off" placeholder="搜索全部书签">
       </div>
 
-      <!-- .player 提供材质（1000px 胶囊 / --player-bg / blur(40px) saturate(1.8) / --pill-border）
-           .lcd-art 提供封面方块（42px / 圆角 4 / 半像素描边），.lcd-title 与 .lcd-artist 提供两级字号。
+      <!-- .player 提供材质（1000px 胶囊 / --player-bg 最厚层玻璃 / rim+hairline+shadow 收光）
+           .lcd-art 提供封面方块（42px / 圆角 4 / 发丝线描边），.lcd-title 与 .lcd-artist 提供两级字号。
            方框内容由 renderSaveArt 填：有 favicon 就只放 favicon，没有就只放标题首字。 -->
       <div class="player save-pill">
         <span id="saveArt" class="lcd-art save-pill__art"></span>
@@ -117,7 +117,7 @@
   <button id="selectionClearButton" class="pbtn" type="button" title="取消选择" aria-label="取消选择"><svg class="icon"><use href="#i-close"/></svg></button>
 </div>
 
-<!-- 弹出层复用参考项目 .drawer 的材质（--nav-bg + saturate(2.2) blur(30px)），几何覆盖在 sidepanel.css -->
+<!-- 弹出层复用 .drawer 的材质（--nav-bg 玻璃 + 模板 --glass-blur），几何覆盖在 sidepanel.css -->
 <dialog id="editorDialog" class="app-dialog drawer" aria-labelledby="editorHeading">
   <form id="editorForm" method="dialog" class="drawer__scroll sheet-form">
     <div class="sheet-head">
@@ -209,8 +209,8 @@
   </form>
 </dialog>
 
-<!-- 材质取自参考项目 .volume-pop（--glass-btn-bg + saturate(2) blur(60px) + --glass-btn-border）；
-     行样式直接用它的 .nav-link / .nav-icon / .nav-label -->
+<!-- 材质取自 .volume-pop（--glass-control 清玻璃 + --glass-blur-control + 发丝线收光）；
+     行样式直接用 .nav-link / .nav-icon / .nav-label -->
 <div id="bookmarkMenu" class="volume-pop menu hidden" role="dialog" aria-label="书签操作">
   <button id="menuOpenButton" class="nav-link" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-arrow-up-forward"/></svg></span><span class="nav-label">打开链接</span></button>
   <button id="menuOptimizeButton" class="nav-link" type="button"><span class="nav-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span><span class="nav-label">优化标题与摘要</span></button>

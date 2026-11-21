@@ -5,7 +5,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // 界面层的静态契约。浏览器扩展没有渲染测试，所以用源码断言把两类最易漂移的
-// 东西钉住：JS 与 HTML 之间的 id/图标契约，以及「样式确实复用了参考项目」这件事。
+// 东西钉住：JS 与 HTML 之间的 id/图标契约，以及「样式确实复用了参考项目」
+// 这件事 —— vendor 层现在是 Solid Glass 模板（src/vendor/solid-glass.css），
+// 但类名清单、样式表顺序与可溯源要求不变。
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = name => readFileSync(join(root, name), 'utf8');
@@ -17,7 +19,7 @@ const OPTIONS_HTML = read('options.html');
 const OPTIONS_JS = read('options.js');
 const OPTIONS_CSS = read('options.css');
 const UI_BASE_CSS = read('ui-base.css');
-const APPLE_MUSIC_CSS = read('apple-music.css');
+const SOLID_GLASS_CSS = read('src/vendor/solid-glass.css');
 
 const matches = (text, pattern) => [...text.matchAll(pattern)].map(match => match[1]);
 const unique = values => [...new Set(values)];
@@ -103,7 +105,8 @@ test('界面源码不再出现 emoji 与符号型图标', () => {
     'options.html': OPTIONS_HTML,
     'options.js': OPTIONS_JS,
     'options.css': OPTIONS_CSS,
-    'ui-base.css': UI_BASE_CSS
+    'ui-base.css': UI_BASE_CSS,
+    'src/vendor/solid-glass.css': SOLID_GLASS_CSS
   };
   for (const [name, source] of Object.entries(sources)) {
     const found = BANNED_GLYPHS.filter(glyph => source.includes(glyph));
@@ -113,20 +116,22 @@ test('界面源码不再出现 emoji 与符号型图标', () => {
 
 // --- 复用参考项目样式 ------------------------------------------------------
 
-test('两个页面都先引入 vendor 的 apple-music.css', () => {
+test('两个页面都先引入 vendor 的 solid-glass.css', () => {
   for (const name of ['sidepanel.html', 'options.html']) {
     const html = read(name);
-    const vendor = html.indexOf('href="apple-music.css"');
+    const vendor = html.indexOf('href="src/vendor/solid-glass.css"');
     const base = html.indexOf('href="ui-base.css"');
     const own = html.search(/href="(sidepanel|options)\.css"/);
-    assert.ok(vendor > -1, `${name} 未引入 apple-music.css`);
-    assert.ok(base > vendor, `${name} 的 ui-base.css 应在 apple-music.css 之后`);
+    assert.ok(vendor > -1, `${name} 未引入 src/vendor/solid-glass.css`);
+    assert.ok(base > vendor, `${name} 的 ui-base.css 应在 solid-glass.css 之后`);
     assert.ok(own > base, `${name} 的自身样式表应在最后`);
   }
 });
 
 // 这条是「真的复用了参考项目的样式」而不是「学了个风格」的守门人：
-// 一旦有人把手写样式换回自创类名，测试就会失败。
+// 一旦有人把手写样式换回自创类名，测试就会失败。类名清单不变 ——
+// 换的只是 vendor 层（AppleMusicUI → Solid Glass），这些类在
+// src/vendor/solid-glass.css 里仍然提供样式。
 const REUSED_CLASSES = [
   'search-field', 'nav-group', 'nav-item', 'nav-link', 'nav-icon', 'nav-label',
   'songlist', 'song-row', 'song-row__img', 'song-row__t', 'btn-pill', 'pbtn',
@@ -152,29 +157,43 @@ test('设置页 markup 真的在用参考项目的类名', () => {
 });
 
 test('vendored 文件保持可溯源，且 token 取值未被改动', () => {
-  assert.match(APPLE_MUSIC_CSS, /commit be958b4fba80a7d2e6bfbacb12d025c3641d24c3/, 'apple-music.css 缺少来源 commit');
-  assert.match(APPLE_MUSIC_CSS, /逐字 vendor/, 'apple-music.css 缺少「不要手工微调」的说明');
-  // 抽查参考项目的原始取值，任何一处被改都会在这里暴露。
+  assert.match(SOLID_GLASS_CSS, /来源：macUI-SolidGlass 模板本机副本，复制日期 2026-11-22/, 'solid-glass.css 缺少来源说明');
+  assert.match(SOLID_GLASS_CSS, /token 禁止手工微调/, 'solid-glass.css 缺少「不要手工微调」的说明');
+  // 抽查 Solid Glass 模板的原始取值，任何一处被改都会在这里暴露。
   for (const token of [
-    '--bg: #1f1f1f;',
-    '--nav-bg: rgba(38, 38, 40, 0.6);',
-    '--player-bg: rgba(45, 45, 45, 0.88);',
-    '--hairline: rgba(255, 255, 255, 0.08);',
-    '--panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);'
+    '--bg: oklch(0.16 0 0);',
+    '--nav-bg: oklch(0.11 0 0 / 50%);',
+    '--player-bg: oklch(0.22 0 0 / 96%);',
+    '--hairline: oklch(1 0 0 / 11%);',
+    '--glass-rim: oklch(1 0 0 / 16%);',
+    '--glass-shade: oklch(0 0 0 / 60%);',
+    '--glass-blur: blur(26px);'
   ]) {
-    assert.ok(APPLE_MUSIC_CSS.includes(token), `apple-music.css 丢失参考取值：${token}`);
+    assert.ok(SOLID_GLASS_CSS.includes(token), `solid-glass.css 丢失模板取值：${token}`);
   }
-  // 参考项目本文里不应再出现未改写的主题媒体查询：只允许 token 块那一处保留
+  // 模板本文里不应再出现未改写的主题媒体查询：只允许 token 块那一处保留
   // 媒体查询结构（theme.js 异步解析设置，首帧靠它避免闪主题）。
-  const withoutComments = APPLE_MUSIC_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  const withoutComments = SOLID_GLASS_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
   const mediaQueries = matches(withoutComments, /@media \(prefers-color-scheme: (\w+)\)/g);
   assert.deepEqual(mediaQueries, ['light'], `主题媒体查询应只剩 token 块那一处，实际：${mediaQueries.join(', ')}`);
+  // 主题色融合：7 个主题色染 brand/强调层，材质保持中性灰玻璃。
+  // matches() 返回的已是第 1 个捕获组（主题色 id）。
+  const THEME_COLOR_IDS = ['violet', 'blue', 'teal', 'green', 'orange', 'rose', 'gray'];
+  const darkSwatches = matches(SOLID_GLASS_CSS, /:root\[data-theme-color="(\w+)"\] \{ --accent-blue: #[0-9a-f]+; \}/g);
+  assert.deepEqual(darkSwatches, THEME_COLOR_IDS, '深色主题色清单应与 utils.mjs 的 7 色一致');
+  const lightSwatches = matches(SOLID_GLASS_CSS, /:root\[data-theme-effective="light"\]\[data-theme-color="(\w+)"\] \{ --accent-blue: #[0-9a-f]+; \}/g);
+  assert.deepEqual(lightSwatches, THEME_COLOR_IDS, '浅色主题色清单应与 utils.mjs 的 7 色一致');
+  // brand 层是主题色的出口：强调 token 名保留，brand 只做别名。
+  assert.match(SOLID_GLASS_CSS, /--brand: var\(--accent-blue\);/, '--brand 应是 --accent-blue 的别名');
 });
 
 test('页面样式表只做几何覆盖，不重复定义主题 token', () => {
   for (const [name, css] of [['sidepanel.css', SIDEPANEL_CSS], ['options.css', OPTIONS_CSS]]) {
     assert.doesNotMatch(css, /data-theme-color=/, `${name} 不应重复定义主题色映射`);
-    assert.doesNotMatch(css, /--nav-bg:/, `${name} 不应重复定义参考 token`);
+    assert.doesNotMatch(css, /--nav-bg:/, `${name} 不应重复定义 vendor token`);
+    // Solid Glass 材质的 oklch 取值只允许出现在 vendor 层，
+    // 覆盖层里手工出现 oklch() 一律视为在微调材质。
+    assert.doesNotMatch(css, /oklch\(/, `${name} 不应手写 oklch 材质取值`);
   }
 });
 
@@ -302,9 +321,15 @@ test('加载态与图标互斥', () => {
 });
 
 test('无障碍偏好：减少动态、减少透明与高对比都有处理', () => {
+  // 三个守卫全部在 ui-base.css；vendor 层的 backdrop-filter 材质
+  // 依赖这里的加厚兜底，不许在别处单独开一份。
   assert.match(UI_BASE_CSS, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(UI_BASE_CSS, /@media \(prefers-reduced-transparency: reduce\)/);
   assert.match(UI_BASE_CSS, /@media \(prefers-contrast: more\)/);
+  // Solid Glass 的玻璃全靠 backdrop-filter：减透明时 vendor 层自身
+  // 不得再补第二份媒体查询，材质退化策略统一收在 base 层。
+  assert.doesNotMatch(SOLID_GLASS_CSS, /@media \(prefers-(reduced-transparency|contrast)/,
+    'vendor 层不应重复无障碍守卫');
 });
 
 // --- CSP 契约 --------------------------------------------------------------

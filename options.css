@@ -1,10 +1,10 @@
 /* ============================================================
-   设置页 —— 与侧边栏共用 apple-music.css 的 token 与组件
-   这里只写版式：把参考项目为「带侧栏的桌面应用」准备的内边距改成整页居中单列。
+   设置页 —— 与侧边栏共用 src/vendor/solid-glass.css 的 token 与组件
+   这里只写版式：把 vendor 层的浮起面板假设改成整页居中单列。
    ============================================================ */
 
-/* 参考项目的 .page-title / .shelf-title 左内边距是为了躲开 260px 侧栏；
-   设置页没有侧栏，改成对称内边距（字号与字重仍然来自参考项目）。 */
+/* vendor 的 .page-title / .shelf-title 只带字号字重（躲侧栏的桌面内边距
+   不在 vendor 层）；设置页给对称内边距。 */
 .options-title {
   padding: 0;
   margin: 0 0 6px;
@@ -25,7 +25,7 @@
 .options-head { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
 .options-head__icon { width: 56px; height: 56px; border-radius: 16px; flex: none; }
 
-/* 参考项目 ≤500px 会把 .detail-foot 居中（它那时是手机版详情页），设置页保持左对齐 */
+/* vendor 层 ≤500px 会把 .detail-foot 居中（假设是手机版详情页），设置页保持左对齐 */
 .options-help, .options-guide { padding: 0; margin: 0 0 4px; text-align: left; }
 .options-hint { margin: 8px 0 0; text-align: left; }
 code {
@@ -67,9 +67,9 @@ code {
 .account__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .account__copy strong { font-size: 14px; font-weight: 600; }
 
-/* 设置行：行本体复用参考项目的 .nav-group / .nav-item / .nav-link
+/* 设置行：行本体复用 vendor 层的 .nav-group / .nav-item / .nav-link
    （34px 高、圆角 8、hover --nav-hover），这里只把它撑到能放两行文字。
-   参考项目的 nav 行没有前置图标，设置行也不放：参考项目没有语义合适的图标，
+   vendor 的 nav 行没有前置图标，设置行也不放：没有语义合适的图标，
    硬套会让「明暗模式」配上一张专辑图标。 */
 .options-group { margin-top: 0; }
 .options-row {
@@ -85,7 +85,7 @@ code {
 .options-row__control { width: auto; min-width: 168px; flex: none; margin-left: auto; }
 .options-row__input { width: auto; min-width: 168px; height: 32px; flex: none; margin-left: auto; }
 
-/* 主题色：圆形语言与参考项目的 .avatar / .btn-circle 一致 */.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+/* 主题色：圆形语言与 vendor 层的 .lcd-art 一致 */.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
 .theme-swatch {
   width: 26px;
   height: 26px;

@@ -266,8 +266,8 @@ function populateCollections({ user, roots, children }, expandedIds = null) {
 /**
  * Render one collection as a flat list of `li` rows.
  *
- * Rows carry the reference project's `.nav-item` / `.nav-link` classes, so
- * hover and the selected tint come straight from apple-music.css. Children are
+ * Rows carry the vendor layer's `.nav-item` / `.nav-link` classes, so
+ * hover and the selected glass state come straight from src/vendor/solid-glass.css. Children are
  * flattened with an incremented `--depth` instead of nested `<ul>`s: the
  * indentation is purely visual, and flattening keeps the markup valid.
  */
@@ -438,7 +438,7 @@ function openBookmark(item) {
 }
 
 /**
- * One bookmark row, built from the reference project's `.song-row` markup:
+ * One bookmark row, built from the vendor layer's `.song-row` markup:
  * `.song-row__img` for the cover square, `.song-row__t` plus its `.sub` line for
  * the two-line label. The old build used a four-column card grid with an excerpt
  * and three always-visible buttons, which read as a spreadsheet.

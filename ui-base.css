@@ -1,8 +1,9 @@
 /* ============================================================
    插件自有基础层
-   apple-music.css 是从参考项目逐字 vendor 的，不要动；
-   参考项目没有的东西（状态类、键盘焦点、共享表单控件、无障碍偏好、
-   dialog 重置、加载指示）全部放在这里，页面样式表只写版式与几何。
+   src/vendor/solid-glass.css 是从 Solid Glass 模板 vendor 的材质层，
+   token 禁止手工微调；参考体系里没有的东西（状态类、键盘焦点、共享
+   表单控件、无障碍偏好、dialog 重置、加载指示）全部放在这里，
+   页面样式表只写版式与几何。
    ============================================================ */
 
 /* ---------- 状态与辅助 ---------- */
@@ -53,15 +54,17 @@ button:focus:not(:focus-visible) { outline: none; }
   width: 100%;
   height: 38px;
   padding: 0 12px;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--field-edge);
   border-radius: 10px;
-  background: var(--nav-selected);
+  background: var(--field);
+  background-clip: padding-box;
+  box-shadow: inset 0 1px 0 var(--field-rim);
   color: var(--text);
   font-size: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 .field-input::placeholder { color: var(--text-dim2); }
-.field-input:focus { border-color: var(--accent-blue); background: var(--bg); }
+.field-input:focus { border-color: var(--focus-line); }
 .field-input:focus-visible { box-shadow: 0 0 0 3px var(--accent-blue); }
 textarea.field-input { height: auto; min-height: 62px; padding: 9px 12px; resize: vertical; line-height: 1.5; }
 select.field-input {
@@ -77,25 +80,38 @@ select.field-input {
 .check-field { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
 
 /* .btn-pill 的共享变体：两个页面都要用，所以放在这里而不是某个页面的样式表。
-   深色下参考的 .btn-pill 是白色实心，次要动作必须靠描边与灰字拉开层级。 */
+   vendor 层的 .btn-pill 是实心墨面玻璃（rim/shade 收光在边缘）；两种变体
+   各自换成自己的材质：quiet 是清玻璃（模板的 outline 按钮），danger 是
+   实色 pane、收光用同族颜色，都不继承墨面的阴影。 */
 .btn-pill--small { height: 30px; padding: 0 14px; font-size: 12px; }
 .btn-pill--quiet {
   border: 1px solid var(--hairline);
-  background: var(--nav-selected);
+  background: var(--glass-control);
   color: var(--text-dim);
+  box-shadow:
+    inset 0 1px 0 var(--glass-control-rim),
+    0 1px 2px var(--glass-contact);
 }
 .btn-pill--quiet:hover { background: var(--nav-hover); color: var(--text); }
-.btn-pill--danger { background: var(--danger); color: #fff; }
+.btn-pill--danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 32%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 24%, transparent),
+    0 1px 2px var(--glass-contact),
+    0 8px 18px -9px var(--glass-shade);
+}
 .btn-pill--danger:hover { opacity: 0.88; }
 .btn-pill:disabled { opacity: 0.5; cursor: wait; }
 
-/* 行内紧凑下拉：参考项目没有下拉控件，形状沿用 .field-input 的语言 */
+/* 行内紧凑下拉：形状沿用 .field-input 的语言（清玻璃 pane） */
 .select-inline {
   height: 28px;
   padding: 0 28px 0 10px;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--field-edge);
   border-radius: 8px;
-  background-color: var(--nav-selected);
+  background-color: var(--field);
   background-image: var(--select-arrow);
   background-repeat: no-repeat;
   background-position: right 9px center;
@@ -163,11 +179,13 @@ dialog.app-dialog[open] { animation: ui-sheet-in 0.22s cubic-bezier(0.22, 1, 0.3
   }
 }
 
-/* 参考项目的材质全靠 backdrop-filter；关掉透明后改用实色，避免糊成一片。 */
+/* Solid Glass 的材质全靠 backdrop-filter；关掉透明后改用实色，
+   避免糊成一片（等价于模板 prefers-reduced-transparency 的加厚兜底）。 */
 @media (prefers-reduced-transparency: reduce) {
   :root,
   :root[data-theme-effective="light"] {
     --nav-bg: var(--bg);
+    --player-bg: var(--bg);
   }
   .panel, .panel__head, .app-dialog, .selection-bar, .save-pill, .menu, .toast {
     -webkit-backdrop-filter: none !important;
@@ -181,6 +199,9 @@ dialog.app-dialog[open] { animation: ui-sheet-in 0.22s cubic-bezier(0.22, 1, 0.3
   :root[data-theme-effective="light"] {
     --hairline: currentColor;
     --nav-selected: transparent;
+    --glass-rim: transparent;
+    --glass-inner: transparent;
+    --glass-edge: currentColor;
   }
   .field-input, .menu, .toast { border-color: currentColor; }
 }

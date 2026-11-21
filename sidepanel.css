@@ -1,14 +1,14 @@
 /* ============================================================
-   侧边栏 —— 只写版式、几何覆盖与参考项目没有的新组件
-   材质、字阶、圆角、间距节奏、hover/选中态一律来自 apple-music.css。
+   侧边栏 —— 只写版式、几何覆盖与 vendor 层没有的新组件
+   材质、收光、hover/选中态一律来自 src/vendor/solid-glass.css。
    结构：先「几何覆盖」（每条都注明来源类），再「新组件」。
    ============================================================ */
 
-/* ================= 中和参考项目的移动端布局切换 =================
-   参考项目在 ≤500px 时会把桌面侧栏与播放条整个隐藏，改用 .mobile-topbar +
-   .drawer + .mini-player 那套手机外壳。插件侧边栏本身就是窄布局，没有那套外壳，
-   所以对复用的类要把这条 display:none 中和掉（这里的选择器与来源同为 0,1,0 权重，
-   靠 sidepanel.css 在 apple-music.css 之后取胜）。 */
+/* ================= 中和 vendor 层的固定宽度假设 =================
+   vendor 的 .sidebar 是 260px 固定宽度的浮起面板，.player/.volume-pop
+   是定尺寸胶囊。插件侧边栏本身就是窄布局，对复用的类在这里放开
+   几何（这里的选择器与来源同为 0,1,0 权重，靠 sidepanel.css 在
+   solid-glass.css 之后取胜）。 */
 
 .panel { display: flex; }
 .save-pill,
@@ -18,7 +18,8 @@
 /* ================= 几何覆盖 ================= */
 
 /* 来源 .sidebar：position:fixed + left/top/bottom:--sb-gap + width:--sb-w。
-   面板只需要补 right 并放开固定宽度，其余（离屏 12px、圆角 20px、玻璃、投影）全部继承。 */
+   面板只需要补 right 并放开固定宽度，其余（离屏 12px、圆角 20px、玻璃、
+   rim/hairline/shadow 收光）全部继承。 */
 .panel {
   right: var(--sb-gap);
   width: auto;
@@ -28,7 +29,7 @@
    参考项目是 17px 20px 10px，面板窄一些，并且分组的左右留白由各自组件负责。 */
 .panel__scroll { padding: 12px 0 22px; }
 
-/* 来源 .player（桌面播放条，668px 固定 + 居中 translateX）。面板内它是普通一行。
+/* 来源 .player（vendor 里的 fixed 吸底胶囊）。面板内它是普通一行。
    左右内边距按圆角几何算：胶囊两端是 28px 半径（56px 高的一半）的圆帽，
    42px 高的封面在竖直方向占 y=7..49，要让它的左上角落在弧线里还留出 5px 以上余量，
    横向至少需要 20px 内缩 —— 12/14px 时只有 2px 余量，看上去就是「图标和圆角撞在一起」。 */
@@ -73,9 +74,10 @@
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 .toast.error { background: var(--danger); border-color: transparent; color: #fff; }
 
-/* 来源 .volume-pop：宽 76 高 40 的胶囊音量条。菜单要竖排多行，只改几何，
-   并把底色加厚 —— 参考项目那个音量浮层只有一行控件，菜单是四行文字，
-   在 backdrop-filter 不可用的环境（部分 GPU/省电配置）下必须仍然读得清。 */
+/* 来源 .volume-pop：vendor 里是 76×40 的清玻璃浮层。菜单要竖排多行，
+   只改几何，并把底色加厚为 --player-bg（vendor 层里最厚的 popover 玻璃）——
+   菜单是四行文字，在 backdrop-filter 不可用的环境（部分 GPU/省电配置）下
+   必须仍然读得清。 */
 .menu {
   position: fixed;
   right: auto;
@@ -87,20 +89,20 @@
   border-radius: 14px;
   flex-direction: column;
   align-items: stretch;
-  background: rgba(30, 30, 32, 0.86);
+  background: var(--player-bg);
   opacity: 1;
   pointer-events: auto;
   z-index: 60;
   animation: ui-menu-in 0.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
-:root[data-theme-effective="light"] .menu { background: rgba(250, 250, 250, 0.94); }
 @keyframes ui-menu-in {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: none; }
 }
 
 /* 来源 .drawer（全屏抽屉）。对话框只需要底部一段，并沿用 .drawer 的玻璃材质；
-   底色同样加厚：弹层里是整张表单，60% 透明在没有 backdrop-filter 时读不清。 */
+   底色同样加厚为 --player-bg（vendor 层里最厚的 popover 玻璃）：弹层里是整张
+   表单，96% 以外的透明度在没有 backdrop-filter 时读不清。 */
 dialog.app-dialog.drawer {
   position: fixed;
   inset: auto 0 0 0;
@@ -110,14 +112,14 @@ dialog.app-dialog.drawer {
   max-height: 92vh;
   border-radius: 20px 20px 0 0;
   border-top: 1px solid var(--hairline);
-  background: rgba(28, 28, 30, 0.92);
+  background: var(--player-bg);
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
-:root[data-theme-effective="light"] dialog.app-dialog.drawer { background: rgba(250, 250, 250, 0.95); }
 dialog.app-dialog.drawer:not([open]) { display: none; }
 
-/* 来源 .shelf-title：桌面用 312px 左内边距躲开侧栏，面板里改成等宽内边距。
+/* 来源 .shelf-title：桌面版式里它带躲侧栏的左内边距（vendor 层不搬运），
+   面板里改成等宽内边距。
    这一行必须始终是单行：标题省略、计数不折行、工具区固定宽度。 */
 .shelf-title--group {
   display: flex;
@@ -130,10 +132,10 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 }
 .shelf-title--group:first-child { margin-top: 4px; }
 
-/* 来源 .songlist：桌面用 312px/24px 外边距，面板里等宽内缩。 */
+/* 来源 .songlist：vendor 层等宽 16px 内缩，面板沿用。 */
 .songlist { margin: 0 16px; }
 
-/* 来源 .search-field：固定 496px 宽 → 撑满并留出与其它分组一致的边距。 */
+/* 来源 .search-field：vendor 层不定宽，面板里撑满并留出与其它分组一致的边距。 */
 .search-field { width: auto; margin: 8px 16px 0; }
 
 /* ================= 新组件（参考项目没有的） ================= */
@@ -149,17 +151,17 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   height: 50px;
   padding: 0 10px 0 18px;
   background: var(--nav-bg);
-  -webkit-backdrop-filter: saturate(2.2) blur(16px);
-  backdrop-filter: saturate(2.2) blur(16px);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--hairline);
 }
 .panel__head .sidebar__logo { margin-right: auto; }
 .panel__head .sidebar__logo-apple { border-radius: 6px; }
 .panel__head-actions { display: flex; align-items: center; gap: 2px; }
 
-/* 来源 .pbtn：参考项目里它是播放器的传输键，浅色主题下取 Apple 红（--transport）。
-   面板没有播放器，所以只复用它的几何（32×26 / 圆角 6 / 居中）与 hover，
-   颜色换成中性文字色 —— 否则列表每行一个红点，噪声太大。 */
+/* 来源 .pbtn：vendor 里它是墨色传输键。面板没有播放器，所以只复用它的几何
+   （32×26 / 圆角 6 / 居中）与 hover，颜色换成中性文字色 —— 否则列表每行
+   一个亮块，噪声太大。 */
 .pbtn {
   position: relative;
   color: var(--text-dim);
@@ -170,9 +172,10 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .pbtn--square {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--glass-edge);
   border-radius: 10px;
-  background: var(--nav-selected);
+  background: var(--glass-control);
+  box-shadow: inset 0 1px 0 var(--glass-control-rim);
 }
 
 /* 未连接引导：沿用参考的字阶与 .btn-pill */
@@ -293,7 +296,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .shelf-title__tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
 .loading-label { white-space: nowrap; }
 
-/* 20px 圆形复选框（参考项目的 .avatar / .btn-circle 是同一套圆形语言） */
+/* 20px 圆形复选框（vendor 层的 .lcd-art 同一套圆形/方角语言） */
 .pick {
   appearance: none;
   -webkit-appearance: none;
@@ -330,8 +333,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .select-inline { max-width: 112px; }
 
 /* 书签行：.song-row 提供 52px / gap 14 / 圆角 6 / hover --nav-hover，
-   这里只补「封面 + 两行文字 + •••」的排布与标签 */
-.song-row { cursor: pointer; }
+   这里只补「封面 + 两行文字 + •••」的排布与标签 */.song-row { cursor: pointer; }
 .song-row__pick { align-self: center; }
 /* 参考项目的 .song-row__t .sub 只被父级裁切，这里补上省略号 */
 .song-row__t .sub {
@@ -344,7 +346,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .song-row:hover .song-row__more, .song-row:focus-within .song-row__more { color: var(--text); }
 
 /* 封面方块：里面只放「照片」或「首字」其中之一（见 coverContent）。
-   参考项目把占位底色硬编码成深色 #2a2a2c（浅色主题下是黑方块），换成本主题的 tint。 */
+   占位底色用主题的中性 tint（--nav-selected），不硬编码色值。 */
 .song-row__cover {
   display: grid;
   place-items: center;
@@ -364,7 +366,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   object-fit: cover;
 }
 
-/* 标签：用参考项目唯一的中性 tint（--nav-selected），不引入新的强调色 */
+/* 标签：用主题唯一的中性 tint（--nav-selected），不引入新的强调色 */
 .tag {
   max-width: 84px;
   padding: 1px 7px;
@@ -427,7 +429,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 
 /* .btn-pill 的变体在 ui-base.css（两个页面共用） */
 
-/* ================= 自适应（对齐参考项目的断点思路） ================= */
+/* ================= 自适应（面板宽 320–420px 的窄幅档位） ================= */
 
 @media (max-width: 420px) {
   /* 排序下拉收窄，把宽度让给收藏夹名，保证列表头仍是单行 */
