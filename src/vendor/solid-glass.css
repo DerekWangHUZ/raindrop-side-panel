@@ -29,6 +29,15 @@
       桌面货架/移动外壳等未用规则不搬运；组件几何沿用扩展的紧凑取值，
       不引入模板的桌面布局假设。
    5. 字体栈去掉需要网络字体的 Geist，保留模板的系统字体回退。
+   6. 字阶（S7 对齐）：追加模板 tokens.css 的 HIG 字号与 tracking token
+      （取值照抄，只增不改 —— 契约测试锁值），散点字号全部改引 token。
+   7. 运行时降级（S10 对齐）：theme.js 监听 prefers-reduced-* 把状态写到
+      html class；is-reduced-transparency 的实色 token 组按模板
+      chrome.css 取值（映射 --sidebar→--nav-bg、--popover→--player-bg），
+      CSS 媒体查询守卫仍只收在 ui-base.css（vendor 层禁自带）。
+   8. 自绘悬浮滚动条（S6' 对齐）：模板 chrome.css .mac-scrollbar 的
+      vanilla 移植，逻辑在 src/vendor/mac-scrollbar.js，样式收在本层；
+      轨道钉在 .panel 内侧避开 20px 圆角弧。
    ============================================================ */
 
 /* ================= 重置与页面 ================= */
@@ -69,6 +78,29 @@ img { -webkit-user-drag: none; }
   /* 几何（紧凑版面沿用扩展自己的取值） */
   --sb-w: 260px;
   --sb-gap: 12px;
+
+  /* 字阶与字距（S7）：照抄模板 tokens.css —— HIG Typography
+     「macOS built-in text styles」与 macOS tracking values 表。
+     规则：凡 font-size 大于其行框的元素必须显式 line-height。 */
+  --font-large-title-size: 26px;   --font-large-title-lh: 32px;
+  --font-title1-size: 22px;        --font-title1-lh: 26px;
+  --font-title2-size: 17px;        --font-title2-lh: 22px;
+  --font-title3-size: 15px;        --font-title3-lh: 20px;
+  --font-headline-size: 13px;      --font-headline-lh: 16px;
+  --font-body-size: 13px;          --font-body-lh: 16px;
+  --font-callout-size: 12px;       --font-callout-lh: 15px;
+  --font-subheadline-size: 11px;   --font-subheadline-lh: 14px;
+  --font-footnote-size: 10px;      --font-footnote-lh: 13px;
+  --font-caption1-size: 10px;      --font-caption1-lh: 13px;
+
+  --track-10: 0.12px;
+  --track-11: 0.06px;
+  --track-12: 0px;
+  --track-13: -0.08px;
+  --track-15: -0.23px;
+  --track-17: -0.43px;
+  --track-22: -0.26px;
+  --track-26: 0.15px;
 
   /* 页面与文字：--background / --foreground 的直译；字阶按旧的四档
      透明度从 foreground 派生。 */
@@ -302,8 +334,9 @@ img { -webkit-user-drag: none; }
 .sidebar__scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* ================= 导航行 =================
-   hover 是模板的 --hover-faint；选中的是「唯一状态」：同一小块
-   清玻璃，顶缘一条光线，四周一条发丝线。 */
+   hover 是模板的 --hover-faint；选中项是模板 chrome.css 的 999px 胶囊：
+   min-height 33px，选中/展开共用「唯一状态」那块清玻璃（rim+edge 三件套），
+   彩色主题下按模板 accent 14% 染色模式用 --accent-blue 调染。 */
 
 .nav-group { display: flex; flex-direction: column; gap: 6px; }
 
@@ -311,23 +344,51 @@ img { -webkit-user-drag: none; }
 .nav-link {
   display: flex;
   align-items: center;
-  height: 34px;
-  border-radius: 8px;
-  padding: 0 8px;
-  font-size: 14px;
+  gap: 9px;
+  min-height: 33px;
+  border-radius: 999px;
+  padding: 0 10px 0 11px;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
   white-space: nowrap;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease, color 0.12s ease;
 }
 .nav-link:hover { background: var(--nav-hover); }
 .nav-item--selected > .nav-link {
-  background: var(--nav-selected);
+  background-color: var(--nav-selected);
   box-shadow:
     inset 0 1px 0 var(--glass-state-rim),
     0 0 0 1px var(--glass-state-edge);
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+/* 彩色主题（7 色预设，graphite 无）：模板 chrome.css 的 accent 14% 染色
+   —— 淡染色透明玻璃 + 顶缘光线 + 发丝线，图标染强调色墨。 */
+:root[data-theme-color] .nav-item--selected > .nav-link {
+  background-color: color-mix(in oklch, var(--accent-blue) 14%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 35%, var(--accent-blue) 18%),
+    0 0 0 1px color-mix(in oklch, var(--accent-blue) 26%, transparent);
+}
+:root[data-theme-color] .nav-item--selected > .nav-link .nav-icon {
+  color: var(--accent-blue);
 }
 
 .nav-icon { width: 20px; height: 20px; flex: none; display: flex; align-items: center; justify-content: center; margin-right: 3px; }
 .nav-icon svg { width: 20px; height: 20px; }
-.nav-label { overflow: hidden; text-overflow: ellipsis; }
+.nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* 分组小节标题（模板 .nav-section-title 的刻度：callout 12px/600/track-12）。 */
+.nav-section-title {
+  font-size: var(--font-callout-size);
+  line-height: var(--font-callout-lh);
+  font-weight: 600;
+  letter-spacing: var(--track-12);
+  color: var(--text-dim);
+  padding: 10px 10px 6px 11px;
+}
 
 /* ================= 搜索域 =================
    一块用来打字的清玻璃：发丝线是边框，顶缘光线画在框内。 */
@@ -397,8 +458,26 @@ img { -webkit-user-drag: none; }
   flex: none;
   box-shadow: 0 0 0 0.5px var(--hairline);
 }
-.lcd-title { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lcd-artist { font-size: 11px; color: var(--text-dim2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lcd-title {
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lcd-artist {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-lh);
+  letter-spacing: var(--track-11);
+  color: var(--text-dim2);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ================= 传输键 =================
    面板只复用它的几何与 hover；颜色由 sidepanel.css 换成中性文字色。 */
@@ -490,7 +569,12 @@ img { -webkit-user-drag: none; }
 .drawer__scroll::-webkit-scrollbar-thumb { background: var(--scrollthumb); border-radius: 3px; }
 .drawer__scroll::-webkit-scrollbar-track { background: transparent; }
 
-.drawer-edit { color: var(--brand); font-size: 13px; }
+.drawer-edit {
+  color: var(--brand);
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+}
 
 /* ================= 列表 ================= */
 
@@ -506,17 +590,40 @@ img { -webkit-user-drag: none; }
 }
 .song-row:hover { background: var(--nav-hover); }
 .song-row__img { width: 38px; height: 38px; border-radius: 4px; object-fit: cover; flex: none; background: var(--nav-selected); }
-.song-row__t { flex: 1; min-width: 0; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song-row__t .sub { display: block; font-size: 12px; color: var(--text-dim2); }
+.song-row__t {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.song-row__t .sub {
+  display: block;
+  font-size: var(--font-callout-size);
+  line-height: var(--font-callout-lh);
+  letter-spacing: var(--track-12);
+  color: var(--text-dim2);
+}
 
-.empty-note { padding: 40px; color: var(--text-dim2); font-size: 14px; }
+.empty-note {
+  padding: 40px;
+  color: var(--text-dim2);
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+}
 
 /* ================= 标题与正文辅助 =================
    几何（躲侧栏的桌面内边距）不搬运：覆盖层按窄幅各自给值。 */
 
 .card-sub {
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
   color: var(--text-dim2);
   overflow: hidden;
   display: -webkit-box;
@@ -524,20 +631,31 @@ img { -webkit-user-drag: none; }
   -webkit-box-orient: vertical;
 }
 
+/* title2 刻度（17px/700/track-17）—— 模板 .section-title 的字级。 */
 .shelf-title {
-  font-size: 17px;
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-lh);
   font-weight: 700;
-  letter-spacing: 0.1px;
+  letter-spacing: var(--track-17);
   margin-bottom: 6px;
 }
 
 .page { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; }
 .page-inner { padding-bottom: 72px; }
-.page-title { font-size: 34px; font-weight: 700; letter-spacing: 0.1px; margin-bottom: 33px; }
+
+/* large-title 刻度（26px/700/track-26）—— 模板 .page-title 的窄幅取值。 */
+.page-title {
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-26);
+  margin-bottom: 33px;
+}
 
 .detail-foot {
   padding: 22px 8px 10px;
-  font-size: 13px;
+  font-size: var(--font-body-size);
+  letter-spacing: var(--track-13);
   color: var(--text-dim2);
   line-height: 1.6;
 }
@@ -564,3 +682,80 @@ img { -webkit-user-drag: none; }
 :root[data-theme-effective="light"][data-theme-color="orange"] { --accent-blue: #c2410c; }
 :root[data-theme-effective="light"][data-theme-color="rose"] { --accent-blue: #be123c; }
 :root[data-theme-effective="light"][data-theme-color="gray"] { --accent-blue: #5f6368; }
+
+/* ============================================================
+   自绘悬浮滚动条（S6'，模板 chrome.css .mac-scrollbar 的 vanilla 移植）
+   逻辑在 src/vendor/mac-scrollbar.js；样式抄模板取值。轨道固定在
+   .panel 内侧右缘 2px，上下各让出 20px 圆角弧，透明轨道 + 胶囊滑块。
+   ============================================================ */
+
+.panel .mac-scrollbar {
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  right: 2px;
+  width: 10px;
+  z-index: 45;
+  display: none;
+  pointer-events: none;
+}
+
+.panel .mac-scrollbar.is-on { display: block; }
+
+.panel .mac-scrollbar__thumb {
+  width: 5px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--scrollthumb);
+  pointer-events: auto;
+  will-change: transform;
+  transition: width 0.12s ease, background-color 0.12s ease;
+}
+
+.panel .mac-scrollbar:hover .mac-scrollbar__thumb,
+.panel .mac-scrollbar.is-dragging .mac-scrollbar__thumb {
+  width: 7px;
+  background: var(--text-dim2);
+}
+
+/* ============================================================
+   运行时无障碍降级（S10，模板 chrome.css「实时无障碍与材质控制」）
+   theme.js 监听 prefers-reduced-* 把状态写到 html class；CSS 媒体查询
+   守卫仍是 ui-base.css 的基线（vendor 层禁自带 prefers-reduced-*）。
+   is-reduced-transparency 的实色取值抄模板 chrome.css:805-819，按本层
+   映射表换名：--panel/--sidebar → --nav-bg，--popover → --player-bg；
+   只新增不覆盖既有 token 值。
+   ============================================================ */
+
+html.is-reduced-transparency {
+  --glass-blur: none;
+  --glass-blur-control: none;
+  --nav-bg: oklch(0.97 0.004 265);
+  --player-bg: oklch(0.99 0.002 265);
+}
+
+/* 浅色 token 挂在 :root[data-theme-effective="light"]（权重 0,2,0），比上面
+   的 class 选择器高，这里补一个同权重变体让降级在浅色下也取胜；
+   首帧（还没有 data-theme-effective）由 ui-base.css 的媒体查询基线兜底。 */
+html[data-theme-effective="light"].is-reduced-transparency {
+  --glass-blur: none;
+  --glass-blur-control: none;
+  --nav-bg: oklch(0.97 0.004 265);
+  --player-bg: oklch(0.99 0.002 265);
+}
+
+html[data-theme-effective="dark"].is-reduced-transparency {
+  --nav-bg: oklch(0.19 0 0);
+  --player-bg: oklch(0.22 0 0);
+}
+
+html.is-reduced-motion,
+html.is-reduced-motion *,
+html.is-reduced-motion *::before,
+html.is-reduced-motion *::after {
+  --dur-fast: 0.01s;
+  --dur: 0.01s;
+  --dur-slow: 0.01s;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+}

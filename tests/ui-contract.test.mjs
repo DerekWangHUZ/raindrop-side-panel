@@ -20,6 +20,8 @@ const OPTIONS_JS = read('options.js');
 const OPTIONS_CSS = read('options.css');
 const UI_BASE_CSS = read('ui-base.css');
 const SOLID_GLASS_CSS = read('src/vendor/solid-glass.css');
+const THEME_JS = read('theme.js');
+const MAC_SCROLLBAR_JS = read('src/vendor/mac-scrollbar.js');
 
 const matches = (text, pattern) => [...text.matchAll(pattern)].map(match => match[1]);
 const unique = values => [...new Set(values)];
@@ -106,7 +108,8 @@ test('界面源码不再出现 emoji 与符号型图标', () => {
     'options.js': OPTIONS_JS,
     'options.css': OPTIONS_CSS,
     'ui-base.css': UI_BASE_CSS,
-    'src/vendor/solid-glass.css': SOLID_GLASS_CSS
+    'src/vendor/solid-glass.css': SOLID_GLASS_CSS,
+    'src/vendor/mac-scrollbar.js': MAC_SCROLLBAR_JS
   };
   for (const [name, source] of Object.entries(sources)) {
     const found = BANNED_GLYPHS.filter(glyph => source.includes(glyph));
@@ -195,6 +198,137 @@ test('页面样式表只做几何覆盖，不重复定义主题 token', () => {
     // 覆盖层里手工出现 oklch() 一律视为在微调材质。
     assert.doesNotMatch(css, /oklch\(/, `${name} 不应手写 oklch 材质取值`);
   }
+});
+
+// --- HIG 字阶与胶囊选中态（S7 / S4） ---------------------------------------
+//
+// 字阶 token 照抄模板 tokens.css，散点字号全部改引 token。这里锁住取值
+// （防止「调一格」）与「页面层不再出现裸 px 字号标题」两件事。
+
+test('vendor 层提供 HIG 字号与 tracking token，取值与模板一致', () => {
+  // 与模板 tokens.css 的「macOS built-in text styles」表逐项对照；
+  // 任何一处被改都会在这里暴露。
+  for (const token of [
+    '--font-large-title-size: 26px;', '--font-large-title-lh: 32px;',
+    '--font-title1-size: 22px;', '--font-title1-lh: 26px;',
+    '--font-title2-size: 17px;', '--font-title2-lh: 22px;',
+    '--font-title3-size: 15px;', '--font-title3-lh: 20px;',
+    '--font-headline-size: 13px;', '--font-headline-lh: 16px;',
+    '--font-body-size: 13px;', '--font-body-lh: 16px;',
+    '--font-callout-size: 12px;', '--font-callout-lh: 15px;',
+    '--font-subheadline-size: 11px;', '--font-subheadline-lh: 14px;',
+    '--font-footnote-size: 10px;', '--font-footnote-lh: 13px;',
+    '--font-caption1-size: 10px;', '--font-caption1-lh: 13px;',
+    '--track-10: 0.12px;', '--track-11: 0.06px;', '--track-12: 0px;',
+    '--track-13: -0.08px;', '--track-15: -0.23px;', '--track-17: -0.43px;',
+    '--track-22: -0.26px;', '--track-26: 0.15px;'
+  ]) {
+    assert.ok(SOLID_GLASS_CSS.includes(token), `solid-glass.css 丢失字阶 token：${token}`);
+  }
+});
+
+test('散点字号全部改引字阶 token，页面层不再有裸 px 标题字号', () => {
+  // vendor 层的关键字级：page-title 26（large-title）、nav 行 13（body）、
+  // shelf-title 17（title2）、分组小节标题 12（callout）。
+  assert.match(SOLID_GLASS_CSS, /\.page-title \{[^}]*font-size: var\(--font-large-title-size\)/s,
+    '.page-title 应用 large-title 刻度（26px）');
+  assert.match(SOLID_GLASS_CSS, /\.nav-link \{[^}]*font-size: var\(--font-body-size\)/s,
+    '.nav-link 应用 body 刻度（13px）');
+  assert.match(SOLID_GLASS_CSS, /\.shelf-title \{[^}]*font-size: var\(--font-title2-size\)/s,
+    '.shelf-title 应用 title2 刻度（17px）');
+  assert.match(SOLID_GLASS_CSS, /\.nav-section-title \{[^}]*font-size: var\(--font-callout-size\)/s,
+    '.nav-section-title 应用 callout 刻度（12px）');
+  // 页面层：标题类规则一律 token 化，不允许再写死标题 px 字号。
+  for (const [name, css] of [['sidepanel.css', SIDEPANEL_CSS], ['options.css', OPTIONS_CSS]]) {
+    assert.doesNotMatch(css, /font-size:\s*(2[0-9]|3[0-9])px/,
+      `${name} 仍有手写的标题级 px 字号`);
+  }
+  // 顶栏与弹层标题走 toolbar__title 刻度（title1 22px）。
+  assert.match(SIDEPANEL_CSS, /\.panel__head \{[^}]*height:\s*48px/s,
+    '顶栏高度对齐模板 --chrome-h 的 48px');
+  assert.match(SIDEPANEL_CSS, /\.panel__head \.sidebar__logo-text \{[^}]*font-size: var\(--font-title1-size\)/s,
+    '顶栏品牌名应用 toolbar__title 刻度（22px）');
+  assert.match(UI_BASE_CSS, /\.sheet-form h2 \{[^}]*font-size: var\(--font-title1-size\)/s,
+    '弹层标题应用 toolbar__title 刻度（22px）');
+});
+
+test('导航选中态是 999px 胶囊 + glass-state 三件套，7 主题色经 accent 染色', () => {
+  // S4：模板 chrome.css 的胶囊选中行 —— min-height 33px、圆角 999px、
+  // 「唯一状态」三件套（清玻璃 + 顶缘光线 + 发丝线）。
+  const link = SOLID_GLASS_CSS.slice(SOLID_GLASS_CSS.indexOf('.nav-link {'),
+    SOLID_GLASS_CSS.indexOf('}', SOLID_GLASS_CSS.indexOf('.nav-link {')));
+  assert.match(link, /min-height:\s*33px/, '.nav-link 应为 min-height 33px');
+  assert.match(link, /border-radius:\s*999px/, '.nav-link 应为 999px 胶囊');
+  const selected = SOLID_GLASS_CSS.slice(SOLID_GLASS_CSS.indexOf('.nav-item--selected > .nav-link {'),
+    SOLID_GLASS_CSS.indexOf('}', SOLID_GLASS_CSS.indexOf('.nav-item--selected > .nav-link {')));
+  assert.match(selected, /var\(--nav-selected\)/, '选中态底色是唯一状态玻璃');
+  assert.match(selected, /var\(--glass-state-rim\)/, '选中态要有顶缘光线');
+  assert.match(selected, /var\(--glass-state-edge\)/, '选中态要有发丝线');
+  // 7 主题色经 --accent-blue 的 14% 染色变体（模板 accent 染色模式）。
+  assert.match(SOLID_GLASS_CSS,
+    /:root\[data-theme-color\] \.nav-item--selected > \.nav-link \{[^}]*color-mix\(in oklch, var\(--accent-blue\) 14%, transparent\)/s,
+    '彩色主题选中态应用 accent 14% 染色');
+});
+
+// --- 运行时无障碍降级与自绘滚动条（S10 / S6'） ------------------------------
+
+test('theme.js 实时同步 prefers-reduced-* 到 html class，vendor 层只收 class 分支', () => {
+  // 双层机制：ui-base.css 的媒体查询是首帧基线（上面已锁），theme.js 负责
+  // 设置中途切换的实时性 —— 模板 chrome.css 的实时降级段。
+  assert.match(THEME_JS, /prefers-reduced-motion: reduce/, 'theme.js 应监听减少动态');
+  assert.match(THEME_JS, /prefers-reduced-transparency: reduce/, 'theme.js 应监听减少透明');
+  assert.match(THEME_JS, /classList\.toggle\('is-reduced-motion'/, '减少动态写入 html class');
+  assert.match(THEME_JS, /classList\.toggle\('is-reduced-transparency'/, '减少透明写入 html class');
+  // vendor 层的 class 分支：实色 token 组按模板取值（映射 --nav-bg/--player-bg）。
+  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-transparency \{[^}]*--glass-blur: none;/s,
+    '减少透明时先关模糊');
+  assert.match(SOLID_GLASS_CSS, /html\[data-theme-effective="dark"\]\.is-reduced-transparency \{[^}]*--nav-bg: oklch\(0\.19 0 0\);/s,
+    '深色实色面板取模板 chrome.css 的 0.19');
+  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-motion,/, '减少动态的运行时分支存在');
+  // vendor 层仍然不许自带 prefers-reduced-* 媒体查询（守卫收在 ui-base.css）。
+  assert.doesNotMatch(SOLID_GLASS_CSS, /@media \(prefers-reduced/,
+    'vendor 层不应自带 prefers-reduced-* 媒体查询');
+});
+
+test('自绘滚动条：vendor 模块存在且挂在面板滚动容器上', () => {
+  // S6'：样式与逻辑都可溯源（模板 chrome.css .mac-scrollbar 的 vanilla 移植）。
+  assert.match(SOLID_GLASS_CSS, /\.panel \.mac-scrollbar \{[^}]*position:\s*absolute/s,
+    '滚动条轨道应钉在面板内侧');
+  assert.match(SOLID_GLASS_CSS, /\.panel \.mac-scrollbar__thumb \{[^}]*border-radius:\s*999px/s,
+    '滑块是胶囊');
+  assert.match(MAC_SCROLLBAR_JS, /export function attachMacScrollbar/, '滚动条逻辑是 ES Module 导出');
+  assert.match(MAC_SCROLLBAR_JS, /requestAnimationFrame/, '同步走 rAF 合帧');
+  assert.match(SIDEPANEL_JS, /attachMacScrollbar\(els\.panelScroll\)/, '面板启动时挂载自绘滚动条');
+  // 原生滚动条隐藏，避免与自绘滑块叠加。
+  assert.match(SIDEPANEL_CSS, /\.panel__scroll \{[^}]*scrollbar-width:\s*none/s, '原生滚动条隐藏（Firefox 语法）');
+  assert.match(SIDEPANEL_CSS, /\.panel__scroll::-webkit-scrollbar \{ width: 0; height: 0; \}/, '原生滚动条隐藏（WebKit）');
+});
+
+// --- 设置页 Panel 式分组与居中确认弹层（S8' / S8''） ------------------------
+
+test('设置页分节改为 glass-panel 卡片分组', () => {
+  // 模板 settings.tsx 的 Panel 结构：最薄档玻璃整卡 + 32px 头 + 内容体。
+  assert.match(OPTIONS_HTML, /class="glass-panel options-card"/, '分节应是 .glass-panel 卡片');
+  assert.match(OPTIONS_CSS, /\.options-card__head \{[^}]*min-height:\s*32px/s,
+    '卡片头部对齐模板 Panel 的 32px 头');
+  assert.match(OPTIONS_CSS, /\.options-card \{[^}]*border-radius:\s*14px/s, '卡片圆角收在覆盖层');
+  // 头部标题是 .shelf-title（title2 刻度由 vendor 层提供，这里锁结构）。
+  assert.match(OPTIONS_HTML, /<h2 class="shelf-title options-card__title"/, '卡片名沿用 .shelf-title');
+});
+
+test('确认类弹层有居中 dialog 变体，底部 sheet 仍是主形态', () => {
+  // S8''：sidepanel 的 4 个弹层保持底部 sheet（契约锁 <dialog>+showModal）；
+  // options 的清除确认走居中变体（popover 最厚档 + 居中 backdrop）。
+  assert.match(UI_BASE_CSS, /dialog\.app-dialog\.dialog-pop \{[^}]*margin:\s*auto;/s,
+    '居中变体应满屏居中');
+  assert.match(UI_BASE_CSS, /dialog\.app-dialog\.dialog-pop \{[^}]*background: var\(--player-bg\);/s,
+    '居中变体用最厚档玻璃');
+  assert.match(OPTIONS_HTML, /<dialog id="clearConfirmDialog" class="app-dialog dialog-pop"/,
+    'options 确认弹层用居中变体');
+  assert.match(OPTIONS_JS, /clearConfirmDialog\.showModal\(\)/, '确认弹层走 showModal');
+  // 底部 sheet 主形态不变：app-dialog 默认 margin 仍是吸底。
+  assert.match(UI_BASE_CSS, /dialog\.app-dialog \{[^}]*margin: auto auto 0;/s,
+    'sheet 主形态保持吸底');
 });
 
 // --- 样式卫生 --------------------------------------------------------------

@@ -152,6 +152,46 @@ dialog.app-dialog[open] { animation: ui-sheet-in 0.22s cubic-bezier(0.22, 1, 0.3
   to { opacity: 1; transform: none; }
 }
 
+/* ---------- 弹层内部表单（两个页面共用的 sheet 组织） ----------
+   sidepanel 的 4 个底部弹层与 options 的居中确认弹层共用：头（标题+关闭）
+   / 表单行 / 尾部动作。标题用 toolbar__title 刻度（title1 22px/700/track-22）。 */
+.sheet-form { gap: 6px; padding: 16px 16px 18px; }
+.sheet-form h2 {
+  margin: 0;
+  font-size: var(--font-title1-size);
+  line-height: var(--font-title1-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-22);
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.sheet-form .card-sub { margin: 0; }
+.sheet-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+/* ---------- 居中对话框变体（S8''） ----------
+   窄面板的弹层以底部 sheet 为主形态；确认类短交互改用模板 dialog 的
+   居中组织：popover 最厚档玻璃（--player-bg）+ 满屏居中 backdrop。
+   sidepanel 的 4 个弹层不动（契约锁 <dialog>+showModal）。 */
+dialog.app-dialog.dialog-pop {
+  margin: auto;
+  max-width: min(360px, calc(100vw - 48px));
+  border-radius: 16px;
+  border: 0;
+  background: var(--player-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    inset 0 -1px 0 var(--popover-under),
+    0 0 0 1px var(--popover-edge),
+    0 24px 60px -18px var(--glass-shade),
+    0 6px 16px -6px var(--glass-lift);
+}
+dialog.app-dialog.dialog-pop[open] { animation: ui-pop-in 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ui-pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
 /* ---------- 加载指示 ---------- */
 
 .spinner {

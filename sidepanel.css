@@ -25,9 +25,14 @@
   width: auto;
 }
 
-/* 来源 .sidebar__scroll：flex:1 + 5px 细滚动条（保留）。只改内边距：
-   参考项目是 17px 20px 10px，面板窄一些，并且分组的左右留白由各自组件负责。 */
-.panel__scroll { padding: 12px 0 22px; }
+/* 来源 .sidebar__scroll：flex:1 + 5px 细滚动条。S6'：滚动条改由 vendor 层
+   的自绘悬浮条接管（src/vendor/mac-scrollbar.js），隐藏原生条避免与
+   自绘滑块叠加、并在 20px 圆角处切入；内边距按窄幅面板单独给值。 */
+.panel__scroll {
+  padding: 12px 0 22px;
+  scrollbar-width: none;
+}
+.panel__scroll::-webkit-scrollbar { width: 0; height: 0; }
 
 /* 来源 .player（vendor 里的 fixed 吸底胶囊）。面板内它是普通一行。
    左右内边距按圆角几何算：胶囊两端是 28px 半径（56px 高的一半）的圆帽，
@@ -135,20 +140,34 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 /* 来源 .songlist：vendor 层等宽 16px 内缩，面板沿用。 */
 .songlist { margin: 0 16px; }
 
-/* 来源 .search-field：vendor 层不定宽，面板里撑满并留出与其它分组一致的边距。 */
-.search-field { width: auto; margin: 8px 16px 0; }
+/* 来源 .search-field：vendor 层不定宽，面板里撑满并留出与其它分组一致的边距。
+   S11'：几何对齐模板 .sidebar__search-btn（30px 高）—— 但本框承载真实输入
+   功能，保留输入形态，只把高度降到 30px、字号用 callout 刻度；材质本来就是
+   同一套清玻璃（--field + 发丝线 + 顶缘光线），不另改。 */
+.search-field {
+  width: auto;
+  height: 30px;
+  margin: 8px 16px 0;
+}
+.search-field svg { width: 14px; height: 14px; }
+.search-field input { font-size: var(--font-callout-size); line-height: var(--font-callout-lh); letter-spacing: var(--track-12); }
 
 /* ================= 新组件（参考项目没有的） ================= */
 
 .main { display: block; }
 
-/* 顶栏：品牌沿用 .sidebar__logo* 的字号与间距，只排布三个动作按钮 */
+/* 顶栏：品牌沿用 .sidebar__logo* 的字号与间距，只排布三个动作按钮。
+   S2'：高度 50 → 48px，对齐模板 --chrome-h（sidebar__chrome 同款 48px 头）；
+   品牌 leading / 动作 trailing 的语义不变。border-bottom 分隔保留：侧边栏
+   无系统窗控也没有桌面窗体的侧栏描边，滚动内容会从 20px 圆角容器顶穿过，
+   hairline 是窄面板里「头与内容同容器」时唯一可靠的内部分隔（模板桌面
+   版用的是让位布局，分隔由留白承担，此处不适用）。 */
 .panel__head {
   display: flex;
   align-items: center;
   gap: 4px;
   flex: none;
-  height: 50px;
+  height: 48px;
   padding: 0 10px 0 18px;
   background: var(--nav-bg);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -158,6 +177,15 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .panel__head .sidebar__logo { margin-right: auto; }
 .panel__head .sidebar__logo-apple { border-radius: 6px; }
 .panel__head-actions { display: flex; align-items: center; gap: 2px; }
+/* 工具栏标题刻度（模板 .toolbar__title：title1 22px/700/track-22）落在
+   面板品牌名上 —— vendor 层的 19px 是桌面 logo 取值，窄幅顶栏按 toolbar
+   的前导标题处理。 */
+.panel__head .sidebar__logo-text {
+  font-size: var(--font-title1-size);
+  line-height: var(--font-title1-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-22);
+}
 
 /* 来源 .pbtn：vendor 里它是墨色传输键。面板没有播放器，所以只复用它的几何
    （32×26 / 圆角 6 / 居中）与 hover，颜色换成中性文字色 —— 否则列表每行
@@ -190,7 +218,14 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   color: var(--text-dim2);
 }
 .setup__icon .icon { width: 26px; height: 26px; }
-.setup__title { margin: 4px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+/* S7：标题刻度对齐 toolbar__title（title1 22px/700/track-22）。 */
+.setup__title {
+  margin: 4px 0 0;
+  font-size: var(--font-title1-size);
+  line-height: var(--font-title1-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-22);
+}
 .setup .detail-foot { padding: 0; text-align: center; }
 
 /* 保存胶囊内部的封面方框。内容同样只有「favicon」或「首字」其中之一，
@@ -258,7 +293,11 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .collection-group-title {
   padding: 10px 8px 2px;
   color: var(--text-dim);
-  font-size: 11px;
+  /* S7：分组小节标题对齐模板 .nav-section-title 刻度（callout 12px/600/track-12）。 */
+  font-size: var(--font-callout-size);
+  line-height: var(--font-callout-lh);
+  font-weight: 600;
+  letter-spacing: var(--track-12);
 }
 .collection-label { flex: 1; min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -387,16 +426,11 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .selection-bar__spacer { flex: 1; }
 .selection-bar__count, #selectionCount { font-size: 13px; font-weight: 600; white-space: nowrap; }
 
-/* 弹出层内部 */
-.sheet-form { gap: 6px; padding: 16px 16px 18px; }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.sheet-head h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.sheet-form .card-sub { margin: 0; }
-.sheet-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+/* 弹出层内部：表单组织在 ui-base.css（两个页面共用）；
+   这里只保留 sidepanel 特有的字段行内排布。 */
 .field-inline { display: flex; align-items: center; gap: 8px; }
 .field-inline .field-input { flex: 1; min-width: 0; }
 .drawer--confirm .sheet-form { padding-top: 20px; }
-.drawer--confirm h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 
 .details {
   display: flex;

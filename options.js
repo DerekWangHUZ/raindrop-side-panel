@@ -33,6 +33,9 @@ const optimizeApiKey = document.querySelector('#optimizeApiKey');
 const toggleOptimizeKeyButton = document.querySelector('#toggleOptimizeKeyButton');
 const optimizeApiModel = document.querySelector('#optimizeApiModel');
 const optimizeApiLanguage = document.querySelector('#optimizeApiLanguage');
+const clearConfirmDialog = document.querySelector('#clearConfirmDialog');
+const clearConfirmForm = document.querySelector('#clearConfirmForm');
+const clearConfirmCancelButton = document.querySelector('#clearConfirmCancelButton');
 
 function setStatus(message, type = '') {
   statusMessage.textContent = message;
@@ -170,7 +173,15 @@ saveButton.addEventListener('click', async () => {
   }
 });
 
-clearButton.addEventListener('click', async () => {
+// S8''：清除 Token 是不可逆的确认类短交互，改走居中 dialog 变体
+// （.dialog-pop）；不再一键直接清除。
+clearButton.addEventListener('click', () => {
+  clearConfirmDialog.showModal();
+});
+
+clearConfirmCancelButton.addEventListener('click', () => clearConfirmDialog.close());
+
+clearConfirmForm.addEventListener('submit', async () => {
   await chrome.storage.local.remove(['raindropToken', 'lastCollectionId']);
   tokenInput.value = '';
   showAccount(null);

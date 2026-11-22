@@ -26,6 +26,7 @@ import {
 import { optimizeFields } from './optimizer.js';
 import { readActivePageMeta, requestPageAccess } from './page-meta.js';
 import { initTheme } from './theme.js';
+import { attachMacScrollbar } from './src/vendor/mac-scrollbar.js';
 
 const els = {
   setupCard: document.querySelector('#setupCard'),
@@ -1188,6 +1189,9 @@ document.addEventListener('keydown', event => {
 });
 els.panelScroll.addEventListener('scroll', () => closeBookmarkMenu(), { passive: true });
 window.addEventListener('resize', () => closeBookmarkMenu());
+// S6'：自绘悬浮滚动条（模板 chrome.css 的 vanilla 移植），替代原生条在
+// 20px 圆角处的切入；样式与避让几何都在 vendor 层。
+attachMacScrollbar(els.panelScroll);
 
 chrome.tabs.onActivated.addListener(() => loadCurrentTab());
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
