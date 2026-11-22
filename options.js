@@ -4,8 +4,7 @@ import { loadOptimizeSettings, saveOptimizeSettings } from './optimizer.js';
 import {
   DEFAULT_THEME_SETTINGS,
   OPTIMIZE_LANGUAGES,
-  OPTIMIZE_MODES,
-  THEME_MODES
+  OPTIMIZE_MODES
 } from './utils.mjs';
 
 const MODE_HINTS = {
@@ -21,7 +20,12 @@ const statusMessage = document.querySelector('#statusMessage');
 const accountCard = document.querySelector('#accountCard');
 const accountName = document.querySelector('#accountName');
 const accountEmail = document.querySelector('#accountEmail');
+// 主题模式是官方分段控件（凹槽容器 + 唯一状态选中）：#themeModeSelect
+// 是 role=radiogroup 容器，三个按钮各带 data-mode。
 const themeModeSelect = document.querySelector('#themeModeSelect');
+const themeModeButtons = themeModeSelect
+  ? [...themeModeSelect.querySelectorAll('.segmented__btn')]
+  : [];
 const optimizeModeSelect = document.querySelector('#optimizeModeSelect');
 const optimizeModeHint = document.querySelector('#optimizeModeHint');
 const optimizeAiFields = document.querySelector('#optimizeAiFields');
@@ -72,13 +76,12 @@ async function updateAppearance(changes = {}) {
     ...current,
     ...changes
   });
-  themeModeSelect.value = settings.themeMode;
+  applyThemeModeButtons(settings.themeMode);
 }
 
 async function loadAppearance() {
   const settings = await initTheme();
-  themeModeSelect.replaceChildren(...THEME_MODES.map(mode => new Option(mode.label, mode.id)));
-  themeModeSelect.value = settings.themeMode;
+  applyThemeModeButtons(settings.themeMode);
 }
 
 async function grantOptimizeAccess() {
@@ -166,7 +169,9 @@ clearConfirmForm.addEventListener('submit', async () => {
   setStatus('Token 已从本机扩展存储中清除。', 'success');
 });
 
-themeModeSelect.addEventListener('change', () => updateAppearance({ themeMode: themeModeSelect.value }));
+themeModeButtons.forEach(button => {
+  button.addEventListener('click', () => updateAppearance({ themeMode: button.dataset.mode }));
+});
 
 optimizeModeSelect.addEventListener('change', async () => {
   const next = await saveOptimizeSettings({ optimizeMode: optimizeModeSelect.value });

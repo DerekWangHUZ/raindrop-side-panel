@@ -10,22 +10,21 @@
 </head>
 <body>
 
-<!-- .page 复用参考项目的滚动容器（body 是 overflow:hidden） -->
 <main class="page options">
-  <div class="page-inner options-inner">
+  <div class="options-inner">
     <div class="options-head">
       <img class="options-head__icon" src="icons/icon48.png" alt="">
-      <div>
-        <h1 class="page-title options-title">Raindrop Side Panel</h1>
-        <p class="card-sub">连接你的 Raindrop.io 账户</p>
+      <div class="options-head__copy">
+        <h1 class="options-title">Raindrop Side Panel</h1>
+        <p class="options-sub">连接你的 Raindrop.io 账户</p>
       </div>
     </div>
 
-    <section class="glass-panel options-card">
-      <header class="options-card__head">
-        <h2 class="shelf-title options-card__title" id="tokenHeading">连接账户</h2>
+    <section class="glass-panel card">
+      <header class="card__head">
+        <h2 class="card__title" id="tokenHeading">连接账户</h2>
       </header>
-      <div class="options-card__body">
+      <div class="card__body">
         <p class="detail-foot options-help">
           填写 Raindrop 的 <strong>Test Token</strong>。该 Token 仅保存在本机扩展存储中，扩展直接访问
           Raindrop API，不经过第三方服务器。
@@ -46,51 +45,48 @@
           <span class="account__dot"></span>
           <span class="account__copy">
             <strong id="accountName">已连接</strong>
-            <span id="accountEmail" class="card-sub"></span>
+            <span id="accountEmail" class="options-sub"></span>
           </span>
         </div>
       </div>
     </section>
 
-    <section class="glass-panel options-card">
-      <header class="options-card__head">
-        <h2 class="shelf-title options-card__title" id="appearanceHeading">外观</h2>
+    <section class="glass-panel card">
+      <header class="card__head">
+        <h2 class="card__title" id="appearanceHeading">外观</h2>
       </header>
-      <div class="options-card__body">
-        <ul class="nav-group options-group">
-          <li class="nav-item">
-            <div class="nav-link options-row">
-              <span class="nav-label options-row__copy">
-                <label for="themeModeSelect">明暗模式</label>
-                <span class="card-sub">跟随系统，或固定一种模式</span>
-              </span>
-              <select id="themeModeSelect" class="select-inline options-row__control"></select>
-            </div>
-          </li>
-        </ul>
+      <div class="card__body">
+        <div class="card-row">
+          <span class="card-row__copy">
+            <label>明暗模式</label>
+            <span class="card-row__desc">跟随系统，或固定一种模式</span>
+          </span>
+          <!-- 官方分段控件：凹槽容器 + 唯一状态清玻璃选中。 -->
+          <div class="segmented" id="themeModeSelect" role="radiogroup" aria-label="明暗模式">
+            <button class="segmented__btn" type="button" role="radio" data-mode="system" aria-checked="false">跟随系统</button>
+            <button class="segmented__btn" type="button" role="radio" data-mode="light" aria-checked="false">浅色</button>
+            <button class="segmented__btn" type="button" role="radio" data-mode="dark" aria-checked="false">深色</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="glass-panel options-card">
-      <header class="options-card__head">
-        <h2 class="shelf-title options-card__title" id="optimizeHeading">优化方式</h2>
+    <section class="glass-panel card">
+      <header class="card__head">
+        <h2 class="card__title" id="optimizeHeading">优化方式</h2>
       </header>
-      <div class="options-card__body">
+      <div class="card__body">
         <p class="detail-foot options-help">
           在保存或编辑弹窗中点击「优化」按钮时，才会按下面的方式整理书签名和摘要。默认不改动任何内容。
         </p>
-        <ul class="nav-group options-group">
-          <li class="nav-item">
-            <div class="nav-link options-row">
-              <span class="nav-label options-row__copy">
-                <label for="optimizeModeSelect">优化方式</label>
-                <span class="card-sub">本地规则即时完成；AI 模型效果更好</span>
-              </span>
-              <select id="optimizeModeSelect" class="select-inline options-row__control" aria-describedby="optimizeModeHint"></select>
-            </div>
-          </li>
-        </ul>
-        <p id="optimizeModeHint" class="card-sub options-hint"></p>
+        <div class="card-row">
+          <span class="card-row__copy">
+            <label for="optimizeModeSelect">优化方式</label>
+            <span class="card-row__desc">本地规则即时完成；AI 模型效果更好</span>
+          </span>
+          <select id="optimizeModeSelect" class="select-inline card-row__control" aria-describedby="optimizeModeHint"></select>
+        </div>
+        <p id="optimizeModeHint" class="card-row__desc options-hint"></p>
 
         <div id="optimizeAiFields" class="options-group hidden">
           <div class="options-field">
@@ -99,7 +95,7 @@
               <input id="optimizeApiBase" class="field-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
               <button id="grantOptimizeAccessButton" class="btn-pill btn-pill--quiet" type="button">授权访问</button>
             </div>
-            <p class="card-sub options-hint">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
+            <p class="card-row__desc options-hint">需兼容 OpenAI 的 <code>/chat/completions</code> 接口。点击“授权访问”后，浏览器会向你填写的站点授予网络权限。</p>
           </div>
 
           <div class="options-field">
@@ -110,36 +106,30 @@
             </div>
           </div>
 
-          <ul class="nav-group options-group">
-            <li class="nav-item">
-              <div class="nav-link options-row">
-                <span class="nav-label options-row__copy">
-                  <label for="optimizeApiModel">模型</label>
-                  <span class="card-sub">例如 gpt-4o-mini、gpt-4.1-mini</span>
-                </span>
-                <input id="optimizeApiModel" class="field-input options-row__input" type="text" autocomplete="off" spellcheck="false">
-              </div>
-            </li>
-            <li class="nav-item">
-              <div class="nav-link options-row">
-                <span class="nav-label options-row__copy">
-                  <label for="optimizeApiLanguage">摘要语言</label>
-                  <span class="card-sub">影响 AI 生成的摘要语言</span>
-                </span>
-                <select id="optimizeApiLanguage" class="select-inline options-row__control"></select>
-              </div>
-            </li>
-          </ul>
-          <p class="card-sub options-hint">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你点击「优化」时才会发出。</p>
+          <div class="card-row">
+            <span class="card-row__copy">
+              <label for="optimizeApiModel">模型</label>
+              <span class="card-row__desc">例如 gpt-4o-mini、gpt-4.1-mini</span>
+            </span>
+            <input id="optimizeApiModel" class="field-input card-row__input" type="text" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="card-row">
+            <span class="card-row__copy">
+              <label for="optimizeApiLanguage">摘要语言</label>
+              <span class="card-row__desc">影响 AI 生成的摘要语言</span>
+            </span>
+            <select id="optimizeApiLanguage" class="select-inline card-row__control"></select>
+          </div>
+          <p class="card-row__desc options-hint">API Key 仅保存在本机 <code>chrome.storage.local</code>，只在你点击「优化」时才会发出。</p>
         </div>
       </div>
     </section>
 
-    <section class="glass-panel options-card">
-      <header class="options-card__head">
-        <h2 class="shelf-title options-card__title" id="guideHeading">如何获取 Test Token</h2>
+    <section class="glass-panel card">
+      <header class="card__head">
+        <h2 class="card__title" id="guideHeading">如何获取 Test Token</h2>
       </header>
-      <div class="options-card__body">
+      <div class="card__body">
         <ol class="detail-foot options-guide">
           <li>打开 Raindrop.io 的设置。</li>
           <li>进入“集成 → 开发者”页面。</li>
@@ -156,13 +146,12 @@
   </div>
 </main>
 
-<!-- S8''：确认类弹层的居中 dialog 变体（保存弹层仍以底部 sheet 为主形态）；
-     材质为模板 popover 最厚档 + 居中 backdrop，见 ui-base.css 的 .dialog-pop。 -->
+<!-- 确认类短交互走居中 dialog 变体（.dialog-pop）；保存类弹层以底部 sheet 为主形态。 -->
 <dialog id="clearConfirmDialog" class="app-dialog dialog-pop" aria-labelledby="clearConfirmHeading">
-  <form id="clearConfirmForm" method="dialog" class="sheet-form">
-    <h2 id="clearConfirmHeading">清除 Token？</h2>
+  <form id="clearConfirmForm" method="dialog" class="dialog-form">
+    <div class="dialog-head"><h2 id="clearConfirmHeading">清除 Token？</h2></div>
     <p class="card-sub">将从本机扩展存储移除已保存的 Raindrop Test Token，清除后需要重新验证才能继续保存。</p>
-    <div class="sheet-actions">
+    <div class="dialog-actions">
       <button id="clearConfirmCancelButton" class="btn-pill btn-pill--quiet" type="button">取消</button>
       <button id="clearConfirmSubmitButton" class="btn-pill btn-pill--danger" type="submit">清除</button>
     </div>

@@ -265,30 +265,33 @@ function populateCollections({ user, roots, children }, expandedIds = null) {
 }
 
 /**
- * Render one collection as a flat list of `li` rows.
+ * Render one collection as a nested SidebarMenuButton / SidebarMenuSub tree.
  *
- * Rows carry the vendor layer's `.nav-item` / `.nav-link` classes, so
- * hover and the selected glass state come straight from src/vendor/solid-glass.css. Children are
- * flattened with an incremented `--depth` instead of nested `<ul>`s: the
- * indentation is purely visual, and flattening keeps the markup valid.
+ * Every row is a `li` holding a `.menu-btn` button; children render into a
+ * nested `ul.menu-sub` inside the same `li`, so hierarchy is structural and
+ * the rail line (menu-sub's border-left) draws itself. Hover and the selected
+ * one-state glass come straight from src/vendor/solid-glass.css tokens.
  */
 function renderCollectionNode(node, depth) {
   const id = Number(node.item._id);
-  const rows = [];
-  const row = document.createElement('li');
-  row.className = `nav-item collection-item${id === state.selectedCollectionId ? ' nav-item--selected' : ''}`;
-  row.style.setProperty('--depth', depth);
+  const li = document.createElement('li');
+  li.style.setProperty('--depth', depth);
 
-  let toggle;
+  const button = document.createElement('button');
+  button.className = `menu-btn${id === state.selectedCollectionId ? ' menu-btn--selected' : ''}`;
+  button.type = 'button';
+  button.textContent = nodeLabel(node.item);
+  button.title = nodeLabel(node.item);
+  button.addEventListener('click', () => selectCollection(id));
+
   if (node.children.length) {
     const expanded = state.expandedCollectionIds.has(id);
-    toggle = document.createElement('button');
-    toggle.className = 'collection-toggle';
-    toggle.type = 'button';
-    toggle.dataset.expanded = String(expanded);
-    toggle.setAttribute('aria-expanded', String(expanded));
-    toggle.setAttribute('aria-label', '展开或收起子收藏夹');
-    toggle.appendChild(icon('chevron-down'));
+    const chevron = icon('chevron-down', 'icon menu-btn__chevron');
+    // Chevron 必须能独立于「选中收藏夹」点击：占按钮内部第一个槽位并拦截冒泡。
+    const toggle = document.createElement('span');
+    toggle.className = 'menu-btn__toggle';
+    toggle.setAttribute('aria-hidden', 'true');
+    toggle.appendChild(chevron);
     toggle.addEventListener('click', async event => {
       event.stopPropagation();
       if (state.expandedCollectionIds.has(id)) state.expandedCollectionIds.delete(id);
@@ -296,26 +299,26 @@ function renderCollectionNode(node, depth) {
       await chrome.storage.local.set({ expandedCollectionIds: [...state.expandedCollectionIds] });
       renderCollectionTree();
     });
+    button.prepend(toggle);
+    button.setAttribute('aria-expanded', String(expanded));
+
+    if (state.expandedCollectionIds.has(id)) {
+      const sub = document.createElement('ul');
+      sub.className = 'menu-sub';
+      node.children.forEach(child => sub.appendChild(renderCollectionNode(child, depth + 1)));
+      li.append(button, sub);
+    } else {
+      li.appendChild(button);
+    }
   } else {
-    // 叶子节点用一个小圆点占住折叠位，行高与父节点保持一致。
-    toggle = document.createElement('span');
-    toggle.className = 'collection-dot';
-    toggle.setAttribute('aria-hidden', 'true');
+    // Leaf nodes get a quiet spacer in the chevron slot so labels align.
+    const spacer = document.createElement('span');
+    spacer.className = 'menu-btn__toggle menu-btn__toggle--leaf';
+    spacer.setAttribute('aria-hidden', 'true');
+    button.prepend(spacer);
+    li.appendChild(button);
   }
-
-  const select = document.createElement('button');
-  select.className = 'nav-link collection-label';
-  select.type = 'button';
-  select.textContent = nodeLabel(node.item);
-  select.title = nodeLabel(node.item);
-  select.addEventListener('click', () => selectCollection(id));
-  row.append(toggle, select);
-  rows.push(row);
-
-  if (state.expandedCollectionIds.has(id)) {
-    node.children.forEach(child => rows.push(...renderCollectionNode(child, depth + 1)));
-  }
-  return rows;
+  return li;
 }
 
 function renderCollectionTree() {
@@ -325,31 +328,32 @@ function renderCollectionTree() {
     [-1, '未分类']
   ];
   special.forEach(([id, label]) => {
-    const row = document.createElement('li');
-    row.className = `nav-item collection-item${state.selectedCollectionId === id ? ' nav-item--selected' : ''}`;
-    row.style.setProperty('--depth', 0);
-    const glyph = document.createElement('span');
-    glyph.className = 'nav-icon collection-glyph';
-    glyph.setAttribute('aria-hidden', 'true');
-    glyph.appendChild(icon(id === 0 ? 'list' : 'grid'));
+    const li = document.createElement('li');
     const button = document.createElement('button');
-    button.className = 'nav-link collection-label';
+    button.className = `menu-btn${state.selectedCollectionId === id ? ' menu-btn--selected' : ''}`;
     button.type = 'button';
-    button.textContent = label;
-    button.title = label;
+    const iconBox = document.createElement('span');
+    iconBox.className = 'menu-btn__icon';
+    iconBox.setAttribute('aria-hidden', 'true');
+    // 字面量直接传给 icon()：sprite 契约靠源码正则抓 icon 调用的图标名。
+    iconBox.appendChild(icon(id === 0 ? 'list' : 'grid'));
+    const text = document.createElement('span');
+    text.className = 'menu-btn__label';
+    text.textContent = label;
+    button.append(iconBox, text);
     button.addEventListener('click', () => selectCollection(id));
-    row.append(glyph, button);
-    els.collectionTree.appendChild(row);
+    li.appendChild(button);
+    els.collectionTree.appendChild(li);
   });
 
   state.collectionTree.forEach(group => {
     if (group.title) {
       const heading = document.createElement('li');
-      heading.className = 'collection-group-title';
+      heading.className = 'menu-label';
       heading.textContent = group.title;
       els.collectionTree.appendChild(heading);
     }
-    group.nodes.forEach(node => els.collectionTree.append(...renderCollectionNode(node, 0)));
+    group.nodes.forEach(node => els.collectionTree.appendChild(renderCollectionNode(node, 0)));
   });
 }
 
@@ -439,24 +443,27 @@ function openBookmark(item) {
 }
 
 /**
- * One bookmark row, built from the vendor layer's `.song-row` markup:
- * `.song-row__img` for the cover square, `.song-row__t` plus its `.sub` line for
- * the two-line label. The old build used a four-column card grid with an excerpt
- * and three always-visible buttons, which read as a spreadsheet.
+ * One bookmark row, built from the official Item markup:
+ * `.item` is a rounded thin-glass pane, `.item__media` the cover square,
+ * `.item__content` (title + description) the text column, and `.more-btn`
+ * the row-end action that only appears on hover / keyboard focus (the
+ * official ItemActions behaviour). The old build used a four-column card
+ * grid with an excerpt and three always-visible buttons, which read as a
+ * spreadsheet; the previous build used a full-bleed ruled table.
  *
- * The cover square always renders the title's first letter underneath the photo.
- * A favicon that loads but is blank or transparent would otherwise leave an
- * empty tile, and a broken one would leave nothing at all.
+ * The cover square always renders the title's first letter underneath the
+ * photo. A favicon that loads but is blank or transparent would otherwise
+ * leave an empty tile, and a broken one would leave nothing at all.
  */
 function createBookmarkCard(item) {
-  const row = document.createElement('article');
-  row.className = 'song-row';
+  const row = document.createElement('li');
+  row.className = 'item';
   row.tabIndex = 0;
   row.setAttribute('role', 'link');
 
   const pick = document.createElement('input');
   pick.type = 'checkbox';
-  pick.className = 'pick song-row__pick';
+  pick.className = 'pick item__pick';
   pick.checked = state.selectedIds.has(Number(item._id));
   pick.setAttribute('aria-label', `选择${item.title || item.link || '书签'}`);
   pick.addEventListener('click', event => event.stopPropagation());
@@ -468,15 +475,17 @@ function createBookmarkCard(item) {
   });
 
   const cover = document.createElement('span');
-  cover.className = 'song-row__img song-row__cover';
+  cover.className = 'item__media';
   cover.appendChild(coverContent({ title: item.title || item.domain || '', cover: item.cover }));
 
-  const label = document.createElement('div');
-  label.className = 'song-row__t';
-  label.appendChild(document.createTextNode(item.title || item.link || '无标题'));
-  label.title = item.title || item.link || '';
+  const label = document.createElement('span');
+  label.className = 'item__content';
+  const title = document.createElement('span');
+  title.className = 'item__title';
+  title.textContent = item.title || item.link || '无标题';
+  title.title = item.title || item.link || '';
   const sub = document.createElement('span');
-  sub.className = 'sub';
+  sub.className = 'item__desc';
   sub.textContent = item.domain || safeHostname(item.link);
   if (Array.isArray(item.tags) && item.tags.length) {
     item.tags.slice(0, 2).forEach(tagText => {
@@ -487,10 +496,10 @@ function createBookmarkCard(item) {
       sub.appendChild(tag);
     });
   }
-  label.appendChild(sub);
+  label.append(title, sub);
 
   const more = document.createElement('button');
-  more.className = 'pbtn song-row__more';
+  more.className = 'icon-btn more-btn';
   more.type = 'button';
   more.title = '更多操作';
   more.setAttribute('aria-label', `更多操作：${item.title || item.link || '书签'}`);
@@ -557,7 +566,7 @@ function openBookmarkMenu(item, anchor, { focusFirst = false } = {}) {
 
   // Only pull focus into the menu for keyboard users: a mouse click already
   // focused the trigger, and moving focus would paint a focus ring there.
-  if (focusFirst) menu.querySelector('.nav-link')?.focus();
+  if (focusFirst) menu.querySelector('.menu-item')?.focus();
 }
 
 async function runMenuAction(action) {
@@ -1179,7 +1188,7 @@ els.menuDeleteButton.addEventListener('click', () => runMenuAction('delete'));
 // is why clicks on a row's ••• button are excluded.
 document.addEventListener('pointerdown', event => {
   if (els.bookmarkMenu.classList.contains('hidden')) return;
-  if (event.target.closest('#bookmarkMenu') || event.target.closest('.song-row__more')) return;
+  if (event.target.closest('#bookmarkMenu') || event.target.closest('.more-btn')) return;
   closeBookmarkMenu();
 }, true);
 document.addEventListener('keydown', event => {

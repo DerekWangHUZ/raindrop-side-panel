@@ -5,9 +5,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // 界面层的静态契约。浏览器扩展没有渲染测试，所以用源码断言把两类最易漂移的
-// 东西钉住：JS 与 HTML 之间的 id/图标契约，以及「样式确实复用了参考项目」
-// 这件事 —— vendor 层现在是 Solid Glass 模板（src/vendor/solid-glass.css），
-// 但类名清单、样式表顺序与可溯源要求不变。
+// 东西钉住：JS 与 HTML 之间的 id/图标契约，以及「样式确实复用了 Solid Glass
+// 官方材质与组件语言」这件事 —— vendor 层是官方模板（src/vendor/solid-glass.css），
+// 页面层用官方组件词汇（Item / SidebarMenuButton / segmented / glass-panel）。
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = name => readFileSync(join(root, name), 'utf8');
@@ -117,7 +117,7 @@ test('界面源码不再出现 emoji 与符号型图标', () => {
   }
 });
 
-// --- 复用参考项目样式 ------------------------------------------------------
+// --- 复用 Solid Glass 材质层 ------------------------------------------------
 
 test('两个页面都先引入 vendor 的 solid-glass.css', () => {
   for (const name of ['sidepanel.html', 'options.html']) {
@@ -131,32 +131,85 @@ test('两个页面都先引入 vendor 的 solid-glass.css', () => {
   }
 });
 
-// 这条是「真的复用了参考项目的样式」而不是「学了个风格」的守门人：
-// 一旦有人把手写样式换回自创类名，测试就会失败。类名清单不变 ——
-// 换的只是 vendor 层（AppleMusicUI → Solid Glass），这些类在
-// src/vendor/solid-glass.css 里仍然提供样式。
-const REUSED_CLASSES = [
-  'search-field', 'nav-group', 'nav-item', 'nav-link', 'nav-icon', 'nav-label',
-  'songlist', 'song-row', 'song-row__img', 'song-row__t', 'btn-pill', 'pbtn',
-  'shelf-title', 'sidebar__logo-text', 'drawer', 'empty-note',
-  'lcd-title', 'lcd-artist', 'drawer-edit', 'card-sub', 'volume-pop', 'sidebar__scroll'
+// 「真的在用官方组件语言」而不是「学了个风格」的守门人：一旦有人把手写
+// 结构换回旧的行式表格或胶囊导航，测试就会失败。2.1 起页面层词汇表是
+// Solid Glass 官方组件（Item / SidebarMenuButton / segmented / glass-panel）。
+const SIDEPANEL_CLASSES = [
+  'toolbar', 'icon-btn', 'search-field', 'save-card', 'item-group', 'item',
+  'item__media', 'item__content', 'item__title', 'item__desc', 'more-btn',
+  'menu', 'menu-btn', 'menu-btn--selected', 'menu-sub', 'menu-label',
+  'list-head', 'selection-bar', 'menu-pane', 'menu-item', 'toast', 'empty',
+  'btn-pill', 'sg-dots', 'pick', 'tag'
 ];
 
 /** HTML/JS 里类名写作 class="x" 或模板串里的 "x y"，都不是 CSS 选择器写法。 */
-const usesClass = (sources, name) => new RegExp(`["'\`\\s]${name}["'\`\\s]`).test(sources);
+const usesClass = (sources, name) => new RegExp(`["'\`\\s\\.]${name}["'\`\\s]`).test(sources);
 
-test('侧边栏 markup 真的在用参考项目的类名', () => {
+test('侧边栏 markup 真的在用官方组件词汇', () => {
   const sources = `${SIDEPANEL_HTML}\n${SIDEPANEL_JS}`;
-  const missing = REUSED_CLASSES.filter(name => !usesClass(sources, name));
-  assert.deepEqual(missing, [], `侧边栏未复用这些参考类名：${missing.join(' ')}`);
+  const missing = SIDEPANEL_CLASSES.filter(name => !usesClass(sources, name));
+  assert.deepEqual(missing, [], `侧边栏未使用这些官方类名：${missing.join(' ')}`);
 });
 
-test('设置页 markup 真的在用参考项目的类名', () => {
+test('书签列表是留缝卡片流，不是通栏发丝线表格', () => {
+  // 结构：ul.item-group > li.item
+  assert.match(SIDEPANEL_HTML, /<ul id="bookmarkList" class="item-group"/, '列表容器是 .item-group');
+  assert.match(SIDEPANEL_JS, /className = 'item'/, '书签行是 .item');
+  assert.doesNotMatch(SIDEPANEL_HTML, /songlist|song-row/, '音乐播放器的行式表格应已退役');
+  assert.doesNotMatch(SIDEPANEL_CSS, /border-top: 1px solid var\(--hairline\)[^}]*\}\s*\.song-row|\.songlist \{[^}]*border-top/s,
+    '.songlist 通栏线应已退役');
+  // Item 材质：--panel 面 + 发丝线 + 内圈 rim，无逐行阴影毛玻璃。
+  const start = SIDEPANEL_CSS.indexOf('.item {');
+  const rule = SIDEPANEL_CSS.slice(start, SIDEPANEL_CSS.indexOf('}', start));
+  assert.ok(start > -1, '未找到 .item 规则');
+  assert.match(rule, /var\(--panel\)/, '.item 的面是 --panel 最薄档玻璃');
+  assert.match(rule, /var\(--glass-edge\)/, '.item 要有发丝线');
+  assert.match(rule, /var\(--glass-inner\)/, '.item 要有内圈 rim');
+  assert.doesNotMatch(rule, /box-shadow:\s*[^;]*0 12px|backdrop-filter/, '书签行不做逐行阴影与毛玻璃');
+  // 行间留缝（ItemGroup 的 gap），无行贴行。
+  const group = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.item-group {'), SIDEPANEL_CSS.indexOf('}', SIDEPANEL_CSS.indexOf('.item-group {')));
+  assert.match(group, /gap:\s*\d+px/, '.item-group 行间要有 gap');
+});
+
+test('收藏夹树是 SidebarMenuButton/MenuSub 结构，不是胶囊导航', () => {
+  assert.match(SIDEPANEL_JS, /className = `menu-btn/, '树行走 .menu-btn');
+  assert.match(SIDEPANEL_JS, /'menu-sub'/, '子级渲染进嵌套 ul.menu-sub');
+  assert.doesNotMatch(SIDEPANEL_JS, /nav-item|nav-link|collection-toggle|collection-dot/, '旧胶囊导航应已退役');
+  const btn = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.menu-btn {'), SIDEPANEL_CSS.indexOf('}', SIDEPANEL_CSS.indexOf('.menu-btn {')));
+  assert.match(btn, /min-height:\s*32px/, '.menu-btn 应为 32px 行高（官方 h-8）');
+  assert.match(btn, /border-radius:\s*9px/, '.menu-btn 应为 9px 圆角（rounded-md），不是 999px 胶囊');
+  const selected = SIDEPANEL_CSS.slice(
+    SIDEPANEL_CSS.indexOf('.menu-btn--selected'),
+    SIDEPANEL_CSS.indexOf('}', SIDEPANEL_CSS.indexOf('.menu-btn--selected'))
+  );
+  assert.match(selected, /var\(--glass-state\)/, '选中态底色是唯一状态玻璃');
+  assert.match(selected, /var\(--glass-state-rim\)/, '选中态要有顶缘光线');
+  assert.match(selected, /var\(--glass-state-edge\)/, '选中态要有发丝线');
+  // 子级导轨：缩进 + 左侧 1px 发丝线。
+  const sub = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.menu-sub {'), SIDEPANEL_CSS.indexOf('}', SIDEPANEL_CSS.indexOf('.menu-sub {')));
+  assert.match(sub, /border-left:\s*1px solid var\(--hairline\)/, '.menu-sub 要有左导轨');
+});
+
+test('设置页 markup 真的在用官方组件词汇', () => {
   const sources = `${OPTIONS_HTML}\n${OPTIONS_JS}`;
-  const required = ['page-title', 'shelf-title', 'nav-group', 'nav-item', 'nav-link',
-    'nav-label', 'btn-pill', 'field-input', 'card-sub', 'detail-foot', 'page', 'select-inline'];
+  const required = ['glass-panel', 'card', 'card__head', 'card__title', 'card__body', 'card-row',
+    'field-input', 'select-inline', 'btn-pill', 'segmented', 'detail-foot', 'page'];
   const missing = required.filter(name => !usesClass(sources, name));
-  assert.deepEqual(missing, [], `设置页未复用这些参考类名：${missing.join(' ')}`);
+  assert.deepEqual(missing, [], `设置页未使用这些官方类名：${missing.join(' ')}`);
+});
+
+test('主题模式是凹槽分段控件，唯一状态清玻璃选中', () => {
+  assert.match(OPTIONS_HTML, /<div class="segmented" id="themeModeSelect" role="radiogroup"/, '分段控件结构');
+  assert.match(OPTIONS_JS, /segmented__btn/, 'JS 驱动分段按钮');
+  const seg = OPTIONS_CSS.slice(SIDEPANEL_CSS ? OPTIONS_CSS.indexOf('.segmented {') : -1);
+  const rule = seg.slice(0, seg.indexOf('}'));
+  assert.match(rule, /var\(--well-shade\)/, '分段容器是凹槽（上唇阴影）');
+  assert.match(rule, /var\(--well-rim\)/, '分段容器是凹槽（下缘光线）');
+  const active = OPTIONS_CSS.slice(
+    OPTIONS_CSS.indexOf('.segmented__btn[aria-checked="true"]'),
+    OPTIONS_CSS.indexOf('}', OPTIONS_CSS.indexOf('.segmented__btn[aria-checked="true"]'))
+  );
+  assert.match(active, /var\(--glass-state\)/, '选中段是唯一状态玻璃');
 });
 
 test('vendored 文件保持可溯源，且 token 取值未被改动', () => {
@@ -197,14 +250,9 @@ test('页面样式表只做几何覆盖，不重复定义主题 token', () => {
   }
 });
 
-// --- HIG 字阶与胶囊选中态（S7 / S4） ---------------------------------------
-//
-// 字阶 token 照抄模板 tokens.css，散点字号全部改引 token。这里锁住取值
-// （防止「调一格」）与「页面层不再出现裸 px 字号标题」两件事。
+// --- HIG 字阶（官方 tokens.css，取值锁死） ----------------------------------
 
 test('vendor 层提供 HIG 字号与 tracking token，取值与模板一致', () => {
-  // 与模板 tokens.css 的「macOS built-in text styles」表逐项对照；
-  // 任何一处被改都会在这里暴露。
   for (const token of [
     '--font-large-title-size: 26px;', '--font-large-title-lh: 32px;',
     '--font-title1-size: 22px;', '--font-title1-lh: 26px;',
@@ -240,53 +288,97 @@ test('散点字号全部改引字阶 token，页面层不再有裸 px 标题字�
     assert.doesNotMatch(css, /font-size:\s*(2[0-9]|3[0-9])px/,
       `${name} 仍有手写的标题级 px 字号`);
   }
-  // 顶栏与弹层标题走 toolbar__title 刻度（title1 22px）。
-  assert.match(SIDEPANEL_CSS, /\.panel__head \{[^}]*height:\s*48px/s,
+  // 顶栏品牌名走 toolbar__title 刻度（title1 22px）。
+  assert.match(SIDEPANEL_CSS, /\.toolbar \{[^}]*height:\s*48px/s,
     '顶栏高度对齐模板 --chrome-h 的 48px');
-  assert.match(SIDEPANEL_CSS, /\.panel__head \.sidebar__logo-text \{[^}]*font-size: var\(--font-title1-size\)/s,
+  assert.match(SIDEPANEL_CSS, /\.toolbar__brand-text \{[^}]*font-size: var\(--font-title1-size\)/s,
     '顶栏品牌名应用 toolbar__title 刻度（22px）');
-  assert.match(UI_BASE_CSS, /\.sheet-form h2 \{[^}]*font-size: var\(--font-title1-size\)/s,
+  assert.match(UI_BASE_CSS, /\.dialog-head h2 \{[^}]*font-size: var\(--font-title1-size\)/s,
     '弹层标题应用 toolbar__title 刻度（22px）');
 });
 
-test('导航选中态是 999px 胶囊 + glass-state 三件套，无彩色染色', () => {
-  // S4：模板 chrome.css 的胶囊选中行 —— min-height 33px、圆角 999px、
-  // 「唯一状态」三件套（清玻璃 + 顶缘光线 + 发丝线）。
-  const link = SOLID_GLASS_CSS.slice(SOLID_GLASS_CSS.indexOf('.nav-link {'),
-    SOLID_GLASS_CSS.indexOf('}', SOLID_GLASS_CSS.indexOf('.nav-link {')));
-  assert.match(link, /min-height:\s*33px/, '.nav-link 应为 min-height 33px');
-  assert.match(link, /border-radius:\s*999px/, '.nav-link 应为 999px 胶囊');
-  const selected = SOLID_GLASS_CSS.slice(SOLID_GLASS_CSS.indexOf('.nav-item--selected > .nav-link {'),
-    SOLID_GLASS_CSS.indexOf('}', SOLID_GLASS_CSS.indexOf('.nav-item--selected > .nav-link {')));
-  assert.match(selected, /var\(--nav-selected\)/, '选中态底色是唯一状态玻璃');
-  assert.match(selected, /var\(--glass-state-rim\)/, '选中态要有顶缘光线');
-  assert.match(selected, /var\(--glass-state-edge\)/, '选中态要有发丝线');
-  // 7 主题色染色块已移除：选中态不再出现 accent 染色。
-  assert.doesNotMatch(SOLID_GLASS_CSS, /color-mix\(in oklch, var\(--accent-blue\) 14%/, '选中态不应再有 accent 14% 染色');
+test('加载指示是官方 dot-loader，且与图标互斥', () => {
+  assert.match(UI_BASE_CSS, /\.sg-dots i \{[^}]*animation: sg-dot-flash/s,
+    '三点指示走官方 sg-dot-flash');
+  assert.match(UI_BASE_CSS, /\.is-loading \.sg-dots \{ display: flex; \}/,
+    '加载时才显示三点指示');
+  assert.match(UI_BASE_CSS, /\.is-loading[^{]*\.icon\s*\{[^}]*visibility:\s*hidden/s,
+    '加载时必须把图标藏起来');
+  assert.match(SIDEPANEL_HTML, /class="sg-dots"/, 'HTML 用三点指示');
+  assert.doesNotMatch(SIDEPANEL_HTML, /class="spinner"/, 'HTML 不应残留 spinner');
+  assert.doesNotMatch(UI_BASE_CSS, /\.spinner/, 'ui-base 不应再有旧 spinner');
 });
 
-// --- 运行时无障碍降级与自绘滚动条（S10 / S6'） ------------------------------
+// --- 官方对齐（token 取值与官方 main 一致） ----------------------------------
 
-test('theme.js 实时同步 prefers-reduced-* 到 html class，vendor 层只收 class 分支', () => {
-  // 双层机制：ui-base.css 的媒体查询是首帧基线（上面已锁），theme.js 负责
-  // 设置中途切换的实时性 —— 模板 chrome.css 的实时降级段。
-  assert.match(THEME_JS, /prefers-reduced-motion: reduce/, 'theme.js 应监听减少动态');
-  assert.match(THEME_JS, /prefers-reduced-transparency: reduce/, 'theme.js 应监听减少透明');
-  assert.match(THEME_JS, /classList\.toggle\('is-reduced-motion'/, '减少动态写入 html class');
-  assert.match(THEME_JS, /classList\.toggle\('is-reduced-transparency'/, '减少透明写入 html class');
-  // vendor 层的 class 分支：实色 token 组按模板取值（映射 --nav-bg/--player-bg）。
-  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-transparency \{[^}]*--glass-blur: none;/s,
-    '减少透明时先关模糊');
-  assert.match(SOLID_GLASS_CSS, /html\[data-theme-effective="dark"\]\.is-reduced-transparency \{[^}]*--nav-bg: oklch\(0\.19 0 0\);/s,
-    '深色实色面板取模板 chrome.css 的 0.19');
-  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-motion,/, '减少动态的运行时分支存在');
-  // vendor 层仍然不许自带 prefers-reduced-* 媒体查询（守卫收在 ui-base.css）。
-  assert.doesNotMatch(SOLID_GLASS_CSS, /@media \(prefers-reduced/,
-    'vendor 层不应自带 prefers-reduced-* 媒体查询');
+test('.glass-panel 有官方定义：--panel 面 + rim/inner/edge/panel-shadow 收光', () => {
+  const start = SOLID_GLASS_CSS.indexOf('.glass-panel {');
+  assert.ok(start > -1, 'vendor 层缺少 .glass-panel 定义（options 卡片在用它）');
+  const rule = SOLID_GLASS_CSS.slice(start, SOLID_GLASS_CSS.indexOf('}', start));
+  assert.match(rule, /var\(--panel\)/, '面是 --panel 最薄档玻璃');
+  assert.match(rule, /var\(--glass-blur\)/, '有官方模糊');
+  assert.match(rule, /var\(--glass-rim\)/, '顶缘光线');
+  assert.match(rule, /var\(--glass-inner\)/, '内一圈');
+  assert.match(rule, /var\(--glass-edge\)/, '外发丝线');
+  assert.match(rule, /var\(--panel-shadow\)/, '底部阴影');
+});
+
+test('官方 token：--panel / 凹槽 / 语义色相与官方 main 取值一致', () => {
+  assert.ok(SOLID_GLASS_CSS.includes('--panel: oklch(1 0 0 / 4.5%);'), '深色 --panel');
+  assert.ok(SOLID_GLASS_CSS.includes('--panel: oklch(0.975 0.004 265 / 44%);'), '浅色 --panel');
+  for (const token of [
+    '--well-shade: oklch(0 0 0 / 38%);',
+    '--well-rim: oklch(1 0 0 / 9%);',
+    '--well-shade: oklch(0.3 0.06 265 / 14%);',
+    '--well-rim: oklch(1 0 0 / 85%);'
+  ]) {
+    assert.ok(SOLID_GLASS_CSS.includes(token), `丢失凹槽 token：${token}`);
+  }
+  for (const token of [
+    '--success: oklch(0.74 0.16 152);',
+    '--success: oklch(0.58 0.15 152);',
+    '--code-inline: oklch(0.73 0.13 20);',
+    '--code-inline: oklch(0.53 0.17 22);'
+  ]) {
+    assert.ok(SOLID_GLASS_CSS.includes(token), `丢失语义色 token：${token}`);
+  }
+});
+
+test('.btn-pill 有官方 hover/active：hover 变薄不换色，active 收起站立阴影', () => {
+  const hoverStart = SOLID_GLASS_CSS.indexOf('.btn-pill:hover');
+  assert.ok(hoverStart > -1, '缺少官方 hover 态');
+  const hover = SOLID_GLASS_CSS.slice(hoverStart, SOLID_GLASS_CSS.indexOf('}', hoverStart));
+  assert.match(hover, /calc\(var\(--primary-solid\) - 10%\)/, 'hover 应使墨面变薄 10%（不换色）');
+  const activeStart = SOLID_GLASS_CSS.indexOf('.btn-pill:active');
+  assert.ok(activeStart > -1, '缺少官方 active 态');
+  const active = SOLID_GLASS_CSS.slice(activeStart, SOLID_GLASS_CSS.indexOf('}', activeStart));
+  assert.doesNotMatch(active, /0 8px 18px/, 'active 应收起站立阴影');
+});
+
+test('输入域聚焦只提亮边线，没有 3px 焦点环', () => {
+  assert.doesNotMatch(UI_BASE_CSS, /box-shadow:\s*0 0 0 3px/,
+    '官方材料页：输入域被输入时只提亮边线，没有三像素宽的环');
+});
+
+test('计数用 tabular-nums，变化中的数字不跳动', () => {
+  // #resultCount / #loadingLabel 挂 .list-head__meta，#selectionCount 挂
+  // .selection-bar__count —— 两个计数载体都要等宽数字。
+  assert.match(SIDEPANEL_CSS, /\.list-head__meta \{[^}]*font-variant-numeric: tabular-nums/s,
+    '列表头计数要有 tabular-nums');
+  assert.match(SIDEPANEL_CSS, /\.selection-bar__count \{[^}]*font-variant-numeric: tabular-nums/s,
+    '选择条计数要有 tabular-nums');
+});
+
+test('减透明降级补齐官方实色：--primary-solid 100% 与 --panel 实色', () => {
+  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-transparency \{[^}]*--primary-solid: 100%;/s);
+  assert.match(SOLID_GLASS_CSS, /html\.is-reduced-transparency \{[^}]*--panel: oklch\(0\.947 0\.006 265\);/s);
+  assert.match(
+    SOLID_GLASS_CSS,
+    /html\[data-theme-effective="dark"\]\.is-reduced-transparency \{[^}]*--panel: oklch\(0\.19 0 0\);/s
+  );
 });
 
 test('自绘滚动条：vendor 模块存在且挂在面板滚动容器上', () => {
-  // S6'：样式与逻辑都可溯源（模板 chrome.css .mac-scrollbar 的 vanilla 移植）。
   assert.match(SOLID_GLASS_CSS, /\.panel \.mac-scrollbar \{[^}]*position:\s*absolute/s,
     '滚动条轨道应钉在面板内侧');
   assert.match(SOLID_GLASS_CSS, /\.panel \.mac-scrollbar__thumb \{[^}]*border-radius:\s*999px/s,
@@ -294,132 +386,43 @@ test('自绘滚动条：vendor 模块存在且挂在面板滚动容器上', () =
   assert.match(MAC_SCROLLBAR_JS, /export function attachMacScrollbar/, '滚动条逻辑是 ES Module 导出');
   assert.match(MAC_SCROLLBAR_JS, /requestAnimationFrame/, '同步走 rAF 合帧');
   assert.match(SIDEPANEL_JS, /attachMacScrollbar\(els\.panelScroll\)/, '面板启动时挂载自绘滚动条');
-  // 原生滚动条隐藏，避免与自绘滑块叠加。
   assert.match(SIDEPANEL_CSS, /\.panel__scroll \{[^}]*scrollbar-width:\s*none/s, '原生滚动条隐藏（Firefox 语法）');
   assert.match(SIDEPANEL_CSS, /\.panel__scroll::-webkit-scrollbar \{ width: 0; height: 0; \}/, '原生滚动条隐藏（WebKit）');
 });
 
-// --- 设置页 Panel 式分组与居中确认弹层（S8' / S8''） ------------------------
+// --- 源码级守门人（历史回归） ----------------------------------------------
 
-test('设置页分节改为 glass-panel 卡片分组', () => {
-  // 模板 settings.tsx 的 Panel 结构：最薄档玻璃整卡 + 32px 头 + 内容体。
-  assert.match(OPTIONS_HTML, /class="glass-panel options-card"/, '分节应是 .glass-panel 卡片');
-  assert.match(OPTIONS_CSS, /\.options-card__head \{[^}]*min-height:\s*32px/s,
-    '卡片头部对齐模板 Panel 的 32px 头');
-  assert.match(OPTIONS_CSS, /\.options-card \{[^}]*border-radius:\s*14px/s, '卡片圆角收在覆盖层');
-  // 头部标题是 .shelf-title（title2 刻度由 vendor 层提供，这里锁结构）。
-  assert.match(OPTIONS_HTML, /<h2 class="shelf-title options-card__title"/, '卡片名沿用 .shelf-title');
+test('行尾操作按钮默认隐藏，hover 或键盘聚焦所在行才浮现', () => {
+  const base = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.item .more-btn'), SIDEPANEL_CSS.indexOf('@media (hover: none)'));
+  assert.match(base, /opacity:\s*0/, '行尾按钮默认隐藏');
+  assert.match(base, /\.item:hover \.more-btn,/, 'hover 浮现');
+  assert.match(base, /\.item:focus-within \.more-btn/, '键盘聚焦浮现');
+  assert.match(SIDEPANEL_CSS, /@media \(hover: none\)/, '触摸设备常显');
 });
 
-test('确认类弹层有居中 dialog 变体，底部 sheet 仍是主形态', () => {
-  // S8''：sidepanel 的 4 个弹层保持底部 sheet（契约锁 <dialog>+showModal）；
-  // options 的清除确认走居中变体（popover 最厚档 + 居中 backdrop）。
-  assert.match(UI_BASE_CSS, /dialog\.app-dialog\.dialog-pop \{[^}]*margin:\s*auto;/s,
-    '居中变体应满屏居中');
-  assert.match(UI_BASE_CSS, /dialog\.app-dialog\.dialog-pop \{[^}]*background: var\(--player-bg\);/s,
-    '居中变体用最厚档玻璃');
-  assert.match(OPTIONS_HTML, /<dialog id="clearConfirmDialog" class="app-dialog dialog-pop"/,
-    'options 确认弹层用居中变体');
-  assert.match(OPTIONS_JS, /clearConfirmDialog\.showModal\(\)/, '确认弹层走 showModal');
-  // 底部 sheet 主形态不变：app-dialog 默认 margin 仍是吸底。
-  assert.match(UI_BASE_CSS, /dialog\.app-dialog \{[^}]*margin: auto auto 0;/s,
-    'sheet 主形态保持吸底');
-});
-
-// --- 样式卫生 --------------------------------------------------------------
-
-test('hover 反馈不靠位移，避免滚动时的抖动', () => {
-  for (const [name, css] of [['sidepanel.css', SIDEPANEL_CSS], ['options.css', OPTIONS_CSS]]) {
-    assert.doesNotMatch(css, /translateY\(-1px\)/, `${name} 仍在使用位移 hover`);
-  }
-});
-
-test('书签行不做逐行阴影与毛玻璃', () => {
-  const start = SIDEPANEL_CSS.indexOf('.song-row {');
-  const rule = SIDEPANEL_CSS.slice(start, SIDEPANEL_CSS.indexOf('}', start));
-  assert.ok(start > -1, '未找到 .song-row 规则');
-  assert.doesNotMatch(rule, /box-shadow|backdrop-filter/, '书签行不应有阴影或毛玻璃');
-});
-
-/**
- * 三个历史回归的源码级守门人（都是真实截图里暴露过的）：
- *   1. #resultCount / .tree-current 带着参考项目 .card-sub 的两行截断盒，
- *      不中和掉就会把「7 项」折成「7」「项」两行；
- *   2. .save-pill 是 28px 半径的胶囊，子元素不内缩会戳出两端的圆帽；
- *   3. 封面必须有垫底首字，且取不到图时要把 <img> 移除，
- *      否则 Chrome 会在首字上叠一个「图片已损坏」图标。
- */
-test('列表头：计数与当前收藏夹名单行截断', () => {
-  const count = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.list-pick > #resultCount'));
-  const countRule = count.slice(0, count.indexOf('}'));
-  assert.match(countRule, /display:\s*block/, '#resultCount 要摆脱 .card-sub 的 -webkit-box');
-  assert.match(countRule, /white-space:\s*nowrap/, '#resultCount 必须单行');
-  const current = SIDEPANEL_CSS.slice(SIDEPANEL_CSS.indexOf('.tree-current {'));
-  const currentRule = current.slice(0, current.indexOf('}'));
-  assert.match(currentRule, /white-space:\s*nowrap/, '.tree-current 必须单行');
-  assert.match(currentRule, /text-overflow:\s*ellipsis/, '.tree-current 需要省略号');
-});
-
-test('保存胶囊左右留出圆帽空间', () => {
-  const start = SIDEPANEL_CSS.indexOf('.save-pill {');
-  const rule = SIDEPANEL_CSS.slice(start, SIDEPANEL_CSS.indexOf('}', start));
-
-  // 胶囊高 56px、圆角 1000px → 实际半径 28px。42px 高的封面竖直占 y=7..49，
-  // 要让它的角落在弧线内还留 5px 余量，横向内缩至少 20px（12px 时只剩 2px，
-  // 看上去就是「图标和圆角撞在一起」）。这里锁死下限，避免又被调窄。
-  const four = rule.match(/padding:\s*0\s+(\d+)px\s+0\s+(\d+)px/);
-  const shorthand = rule.match(/padding:\s*0\s+(\d+)px\s*;/);
-  const right = four ? Number(four[1]) : shorthand ? Number(shorthand[1]) : null;
-  const left = four ? Number(four[2]) : shorthand ? Number(shorthand[1]) : null;
-  assert.ok(right !== null && left !== null, '.save-pill 需要写成 "padding: 0 <左右>px"');
-  assert.ok(right >= 18, `右内边距 ${right}px 不足：28px 圆帽至少要 18px 才不会压到保存按钮`);
-  assert.ok(left >= 18, `左内边距 ${left}px 不足：28px 圆帽至少要 18px 才不会压到封面`);
-
-  // 窄屏也必须靠缩小封面与按钮来省宽度，而不是压缩内缩
-  const narrowPad = SIDEPANEL_CSS.match(
-    /@media \(max-width: 360px\)[\s\S]*?\.save-pill\s*\{\s*padding:\s*0\s+(\d+)px/
-  );
-  assert.ok(narrowPad && Number(narrowPad[1]) >= 14,
-    `窄屏 .save-pill 内边距 ${narrowPad?.[1] ?? '缺失'} 不足以避开圆帽`);
-});
-
-/**
- * 封面方框的核心不变式：里面**恰好一个**元素 —— 要么照片，要么首字。
- *
- * 这里踩过两次坑，都是「两者并存」造成的：
- *   1. 首字垫在照片下面：浏览器图标常是「透明底上的小图形」，object-fit 放大后
- *      透明区域依然透明，首字就透出来了 —— 一个格子里两个图形；
- *   2. 首字与 favicon 都是 grid item 时各占一行，其中一个被挤出方框外。
- * 所以现在由 coverContent() 二选一，且只在这里放行「不是照片就是首字」的写法。
- */
 test('封面方框只放一个元素（照片或首字，不并存）', () => {
   const body = SIDEPANEL_JS.slice(SIDEPANEL_JS.indexOf('function coverContent'));
   const fn = body.slice(0, body.indexOf('\nfunction ', 10));
   assert.ok(fn.length > 0, '未找到 coverContent');
-  // 没有 cover 时直接返回首字
   assert.match(fn, /if \(!cover\) return initial;/, '没有 cover 时必须直接返回首字');
-  // 有 cover 时只返回照片，失败才换成首字
   assert.match(fn, /return photo;/, '有 cover 时必须只返回照片');
   assert.match(fn, /photo\.replaceWith\(initial\)/, '取不到图时才换成首字');
   assert.doesNotMatch(fn, /appendChild/, 'coverContent 不该往方框里追加第二个元素');
-  // 排版上不应再出现层叠遮挡的写法
-  assert.doesNotMatch(SIDEPANEL_CSS, /\.song-row__photo|\.song-row__initial|\.save-pill__favicon|\.save-pill__initial/,
-    '旧的层叠遮挡样式应已删除');
+  assert.match(SIDEPANEL_CSS, /\.item__media \{[^}]*overflow:\s*hidden/s);
   assert.match(SIDEPANEL_CSS, /\.cover-photo\s*\{[^}]*object-fit:\s*cover/s);
   assert.match(SIDEPANEL_CSS, /\.cover-initial\s*\{/);
 });
 
-test('侧边栏与保存胶囊都走同一套封面逻辑', () => {
+test('侧边栏与保存卡都走同一套封面逻辑', () => {
   assert.match(SIDEPANEL_JS, /coverContent\(\{\s*title:[^}]*cover:\s*item\.cover/s, '书签行封面要走 coverContent');
-  assert.match(SIDEPANEL_JS, /coverContent\(\{[\s\S]{0,200}?cover:\s*tab\?\.favIconUrl/s, '保存胶囊封面要走 coverContent');
-  assert.match(SIDEPANEL_HTML, /id="saveArt"/, '保存胶囊需要一个由 JS 填充的方框');
+  assert.match(SIDEPANEL_JS, /coverContent\(\{[\s\S]{0,200}?cover:\s*tab\?\.favIconUrl/s, '保存卡封面要走 coverContent');
+  assert.match(SIDEPANEL_HTML, /id="saveArt"/, '保存卡需要一个由 JS 填充的方框');
   assert.doesNotMatch(SIDEPANEL_JS, /applyFavicon|saveFavicon/, '旧的 favicon 开关逻辑应已删除');
 });
 
 /**
- * 抄参考项目的 sprite 时最容易犯的错：连它的「业务语义」一起抄过来。
- * 参考项目是音乐播放器，它的 i-note / i-play / i-album 之类在书签管理器里全是错的
- * （曾经把 i-note 当成「没有 favicon」的占位图标，界面上就出现了一个音符）。
+ * 抄参考 sprite 最容易犯的错：连「业务语义」一起抄过来。
+ * 参考项目是音乐播放器，它的 i-note / i-play / i-album 之类在书签管理器里全是错的。
  */
 test('面板不出现播放器语义的图标', () => {
   const playerIcons = ['i-note', 'i-play', 'i-pause', 'i-shuffle', 'i-backward',
@@ -428,7 +431,6 @@ test('面板不出现播放器语义的图标', () => {
     assert.doesNotMatch(SIDEPANEL_HTML, new RegExp(`<symbol id="${name}"`),
       `书签管理器不该出现播放器图标 ${name}`);
   }
-  // 没有 favicon 时用标题首字兜底，而不是借一个图标来凑
   assert.match(SIDEPANEL_JS, /coverContent/, '没有 favicon 时用标题首字兜底');
 });
 
@@ -437,16 +439,10 @@ test('封面取不到图时降级为首字', () => {
   assert.match(SIDEPANEL_JS, /naturalWidth/, '还要处理「200 但 naturalWidth 为 0」的图片');
 });
 
-/**
- * 同一个坑的另一处：刷新 / 优化按钮的 spinner 是叠在图标上的。
- * 必须「默认只显示图标、加载时只显示 spinner」，否则又是一格两个图形。
- */
-test('加载态与图标互斥', () => {
-  assert.match(UI_BASE_CSS, /\.spinner\s*\{[^}]*display:\s*none/s, 'spinner 默认必须隐藏');
-  assert.match(UI_BASE_CSS, /\.is-loading[^{]*\.icon\s*\{[^}]*visibility:\s*hidden/s,
-    '加载时必须把图标藏起来');
-  assert.match(UI_BASE_CSS, /\.is-loading\s+\.spinner\s*\{[^}]*display:\s*block/s,
-    '加载时才显示 spinner');
+test('hover 反馈不靠位移，避免滚动时的抖动', () => {
+  for (const [name, css] of [['sidepanel.css', SIDEPANEL_CSS], ['options.css', OPTIONS_CSS]]) {
+    assert.doesNotMatch(css, /translateY\(-1px\)/, `${name} 仍在使用位移 hover`);
+  }
 });
 
 test('无障碍偏好：减少动态、减少透明与高对比都有处理', () => {
@@ -455,10 +451,13 @@ test('无障碍偏好：减少动态、减少透明与高对比都有处理', ()
   assert.match(UI_BASE_CSS, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(UI_BASE_CSS, /@media \(prefers-reduced-transparency: reduce\)/);
   assert.match(UI_BASE_CSS, /@media \(prefers-contrast: more\)/);
-  // Solid Glass 的玻璃全靠 backdrop-filter：减透明时 vendor 层自身
-  // 不得再补第二份媒体查询，材质退化策略统一收在 base 层。
   assert.doesNotMatch(SOLID_GLASS_CSS, /@media \(prefers-(reduced-transparency|contrast)/,
     'vendor 层不应重复无障碍守卫');
+  // theme.js 实时同步 prefers-reduced-* 到 html class（双层的运行时半边）。
+  assert.match(THEME_JS, /prefers-reduced-motion: reduce/, 'theme.js 应监听减少动态');
+  assert.match(THEME_JS, /prefers-reduced-transparency: reduce/, 'theme.js 应监听减少透明');
+  assert.match(THEME_JS, /classList\.toggle\('is-reduced-motion'/, '减少动态写入 html class');
+  assert.match(THEME_JS, /classList\.toggle\('is-reduced-transparency'/, '减少透明写入 html class');
 });
 
 // --- CSP 契约 --------------------------------------------------------------

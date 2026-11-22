@@ -1,5 +1,34 @@
 # 更新日志
 
+## 2.1
+
+**前端整体推倒重做**：两个页面的 HTML 结构、CSS、视图层渲染 JS 与 UI 契约测试全部重写，从 AppleMusicUI 音乐播放器皮肤彻底换成官方 **Solid Glass**（[deeplethe/solid-glass](https://github.com/deeplethe/solid-glass) main 分支，2026-11-23 抓取）的组件语言。功能零损失：全部元素 id、存储键、API 行为、键盘可达性保持不变。
+
+### 结构语言（对齐官方组件）
+
+- **书签列表 = ItemGroup + Item**：留缝的圆角薄玻璃卡片流（行间 gap 8px），每行是独立面板（`--panel` 最薄档玻璃面 + `--glass-edge` 发丝线 + `--glass-inner` 内圈 rim，10px 圆角）。音乐播放器的通栏发丝线表格（52px 行贴行 + 底边线 + `.songlist` 通栏线）整体退役。行尾操作按钮按官方 ItemActions 行为：平时隐藏，hover / 键盘聚焦所在行浮现，触摸设备常显。
+- **收藏夹树 = SidebarMenuButton / SidebarMenuSub**：32px、9px 圆角行（不再是 999px 胶囊导航），chevron 折叠开关移进按钮内部槽位，子级是真嵌套 `ul.menu-sub`（缩进 + 左侧 1px 竖向发丝线导轨），层级靠结构表达；`--depth` 扁平缩进与绝对定位折叠钮退役。选中行走唯一状态清玻璃三件套。
+- **保存区 = Item 卡片**：ItemMedia + 标题/描述 + 行尾实心墨面按钮；56px 胶囊（`.player` 圆帽几何）退役，圆帽内缩契约随之移除。
+- **顶栏 = ghost 工具栏**：透明图标按钮 + hover `--hover`，品牌名 title1 刻度；不再铺一条区域玻璃。
+- **设置页 = glass-panel 卡片 + card-row 行**：四张最薄档玻璃卡片、32px 头；行组织是官方 Item 语言（标题 headline + 描述 footnote muted + 控件右侧）。「明暗模式」改为官方**凹槽分段控件**（`--well-shade`/`--well-rim` 光反向 + 选中段唯一状态清玻璃），替换原下拉框。
+- **空状态 = 官方 Empty 语言**：清玻璃图标盒 + headline 标题 + muted 描述。
+- **弹层/菜单/选择条/Toast**：统一 popover 最厚档玻璃 pane（`--player-bg` + rim/发丝线/底部收光）；书签操作菜单与树行同语言（32px/9px 圆角行）。
+
+### 材质补齐（官方 main 逐字）
+
+- `.glass-panel` 官方定义（`--panel` 面 + rim/inner/edge/shadow 五件套）——此前 options 卡片引用它但 CSS 从未定义。
+- 官方 token 入位：`--panel`、凹槽 `--well-shade`/`--well-rim`、语义色相 `--success`/`--code-inline`、唯一状态显式别名 `--glass-state`。
+- 复选框官方材质：未选凹槽、选中实心墨面 pane。主按钮官方 hover（墨面变薄 10% 不换色）/active（收站立阴影）。
+- 输入域聚焦只提亮边线（删 3px 外环）；计数 `tabular-nums`。
+- 加载指示换官方 **dot-loader**（三点闪光 `sg-dot-flash`），旧转圈 spinner 删除；`.is-loading` 与图标互斥不变。
+- 减透明降级补齐官方实色取值（`--primary-solid: 100%`、`--panel` 实色）。
+
+### 契约测试
+
+- 重写守门清单：侧边栏必须用官方组件词汇（item-group/item/menu-btn/menu-sub/save-card/toolbar…），设置页必须用（glass-panel/card/segmented/field-input…）；新材质锁（`.item` 引 `--panel/--glass-edge/--glass-inner` 且无逐行阴影毛玻璃、`.menu-sub` 左导轨、`.menu-btn--selected` 唯一状态三件套、`.segmented` 凹槽、行尾按钮浮现规则、无 spinner 残留）。
+- 保留全部既有守门精神：id 契约、dialog/showModal、图标 sprite、禁字形、vendor 溯源与 token 锁、封面二选一逻辑、无障碍三守卫、CSP。
+- 移除随旧结构退役的断言：save-pill 圆帽几何、`.card-sub` 截断盒、AppleMusicUI 类名清单。
+
 ## 2.0
 
 界面改为**直接复用** AppleMusicUI 的样式表，而不是照着气质另写一套。

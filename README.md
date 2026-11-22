@@ -15,8 +15,8 @@
 - 书签名与摘要优化：在弹窗里点击「优化」按钮，或在书签行末尾的 `•••` 菜单里选择「优化标题与摘要」，可选本地规则或 AI 模型
 - 单条书签读取、编辑、删除（移入 Raindrop Trash）
 - 多选书签后批量新增、移动、编辑和删除
-- 设置页选择七种主题色（含灰色），以及跟随系统、固定浅色或固定深色模式
-- 界面为 Apple Music 风格的浮起玻璃面板、发丝分隔线与行式列表；支持键盘焦点、减少动态效果、减少透明度与高对比偏好
+- 设置页选择跟随系统、固定浅色或固定深色模式
+- 界面为 Solid Glass 材质（官方 [deeplethe/solid-glass](https://github.com/deeplethe/solid-glass) 设计系统）：留缝的圆角玻璃卡片列表、带导轨的树状收藏夹、玻璃卡片设置页与凹槽分段控件；支持键盘焦点、减少动态效果、减少透明度与高对比偏好
 - 所有书签数据直接读写 Raindrop REST API；无自建后端
 
 ## 安装（开发者模式）
@@ -130,10 +130,11 @@ optimizer.js                优化：设置读写、本地规则与 AI 重写
 page-meta.js                读取当前标签页标题与描述
 utils.mjs                   批量输入、分组、主题常量与优化规则
 theme.js                    主题状态与实时应用
-apple-music.css             界面样式表（逐字复制自 AppleMusicUI，勿手工微调）
+options.html/css/js         Test Token、外观与优化方式设置
+src/vendor/solid-glass.css  Solid Glass 材质层（vendor 自官方模板，token 禁止手工微调）
+src/vendor/mac-scrollbar.js 自绘悬浮滚动条逻辑
 ui-base.css                 插件自有基础层：状态类、焦点、共享表单控件、无障碍偏好
 sidepanel.html/css/js       侧边栏 UI、树状收藏夹、书签管理
-options.html/css/js         Test Token、外观与优化方式设置
 tests/verify.test.mjs       纯函数校验（node --test）
 tests/ui-contract.test.mjs  界面契约校验（id、图标、类名、无障碍、CSP）
 package.json                npm 元数据与 test 脚本
@@ -148,4 +149,4 @@ icons/                      扩展图标
 npm test
 ```
 
-或直接运行 `node --test`。测试不依赖浏览器环境，覆盖批量解析、标题/摘要优化规则、AI 响应解析、API 重试策略与用户信息缓存。界面契约测试（`tests/ui-contract.test.mjs`）以源码断言保证：侧边栏与设置页的 `#id` 与 JS 引用一致、图标 sprite 无缺失也无死符号、不出现 emoji/字符图标、渲染层使用的类名与 `apple-music.css` 一致、vendor 文件保持可溯源、以及没有内联脚本。
+或直接运行 `node --test`。测试不依赖浏览器环境，覆盖批量解析、标题/摘要优化规则、AI 响应解析、API 重试策略与用户信息缓存。界面契约测试（`tests/ui-contract.test.mjs`）以源码断言保证：侧边栏与设置页的 `#id` 与 JS 引用一致、图标 sprite 无缺失也无死符号、不出现 emoji/字符图标、渲染层使用的类名与 Solid Glass 官方组件词汇一致、`src/vendor/solid-glass.css` vendor 文件保持可溯源且 token 未被手工微调、以及没有内联脚本。

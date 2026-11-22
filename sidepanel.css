@@ -1,242 +1,104 @@
-﻿/* ============================================================
-   侧边栏 —— 只写版式、几何覆盖与 vendor 层没有的新组件
-   材质、收光、hover/选中态一律来自 src/vendor/solid-glass.css。
-   结构：先「几何覆盖」（每条都注明来源类），再「新组件」。
+/* ============================================================
+   侧边栏 —— Solid Glass 官方组件语言（2.1 前端重做）
+   词汇表：toolbar / icon-btn / save-card(item) / menu(menu-btn/menu-sub/menu-label)
+   / list-head / item-group(item) / selection-bar / menu-pane(menu-item) / toast / empty
+   材质一律引 src/vendor/solid-glass.css 的 token；本层只写版式与几何。
    ============================================================ */
 
-/* ================= 中和 vendor 层的固定宽度假设 =================
-   vendor 的 .sidebar 是 260px 固定宽度的浮起面板，.player/.volume-pop
-   是定尺寸胶囊。插件侧边栏本身就是窄布局，对复用的类在这里放开
-   几何（这里的选择器与来源同为 0,1,0 权重，靠 sidepanel.css 在
-   solid-glass.css 之后取胜）。 */
+/* ================= 骨架 =================
+   .panel 只作滚动条的 containing block（mac-scrollbar 挂点），不再铺玻璃。
+   body 透明，跟随浏览器侧边栏底色（延续「方案 B」决策）。 */
 
-.panel { display: flex; }
-.save-pill,
-.selection-bar,
-.toast { display: flex; }
+.panel { display: flex; flex-direction: column; height: 100%; }
 
-/* ================= 几何覆盖 ================= */
-
-/* 来源 .sidebar：position:fixed + left/top/bottom:--sb-gap + width:--sb-w。
-   B：外围玻璃壳整体移除——浏览器侧边栏面板本身就是全高页面，再套一层
-   「浮起 12px 的圆角玻璃 pane」是多余的壳。面板铺满视口（inset 0），
-   圆角/玻璃底/收光全部取消，.panel 只保留 position:fixed 作为滚动条
-   的 containing block；头部玻璃条（.panel__head）成为唯一的区域玻璃。
-   大面积页面底色（body 的 --bg + 三处光源）也一并撤掉，跟随浏览器侧边栏底色。 */
-.panel {
-  right: 0;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: auto;
-  border-radius: 0;
-  background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: none;
-}
-
-/* 来源 body（vendor 层的 --bg 底 + 模板三处光源）：side panel 跟随浏览器
-   主题底色，页面自身不再铺大面积玻璃背景。 */
 body {
   background: transparent;
   background-image: none;
 }
 
-/* 来源 .sidebar__scroll：flex:1 + 5px 细滚动条。S6'：滚动条改由 vendor 层
-   的自绘悬浮条接管（src/vendor/mac-scrollbar.js），隐藏原生条避免与
-   自绘滑块叠加、并在 20px 圆角处切入；内边距按窄幅面板单独给值。 */
 .panel__scroll {
-  padding: 12px 0 22px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 0 88px; /* 底部给选择条/Toast 让位 */
   scrollbar-width: none;
 }
 .panel__scroll::-webkit-scrollbar { width: 0; height: 0; }
 
-/* 来源 .player（vendor 里的 fixed 吸底胶囊）。面板内它是普通一行。
-   左右内边距按圆角几何算：胶囊两端是 28px 半径（56px 高的一半）的圆帽，
-   42px 高的封面在竖直方向占 y=7..49，要让它的左上角落在弧线里还留出 5px 以上余量，
-   横向至少需要 20px 内缩 —— 12/14px 时只有 2px 余量，看上去就是「图标和圆角撞在一起」。 */
-.save-pill {
-  position: static;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  width: auto;
-  height: 56px;
-  margin: 16px 16px 0;
-  padding: 0 20px;
-}
+/* ================= 顶栏（官方 toolbar 语言） ================= */
 
-/* 来源 .player：吸底胶囊，只改左右与居中方式；右侧同样按圆帽几何留边。 */
-.selection-bar {
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  transform: none;
-  width: auto;
-  gap: 8px;
-  padding: 0 14px 0 20px;
-}
-
-/* 来源 .player：胶囊 Toast。 */
-.toast {
-  left: 50%;
-  right: auto;
-  bottom: 16px;
-  width: auto;
-  height: auto;
-  min-height: 40px;
-  padding: 10px 18px;
-  transform: translateX(-50%) translateY(16px);
-  opacity: 0;
-  pointer-events: none;
-  font-size: 13px;
-  text-align: center;
-  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-.toast.error { background: var(--danger); border-color: transparent; color: #fff; }
-
-/* 来源 .volume-pop：vendor 里是 76×40 的清玻璃浮层。菜单要竖排多行，
-   只改几何，并把底色加厚为 --player-bg（vendor 层里最厚的 popover 玻璃）——
-   菜单是四行文字，在 backdrop-filter 不可用的环境（部分 GPU/省电配置）下
-   必须仍然读得清。 */
-.menu {
-  position: fixed;
-  right: auto;
-  bottom: auto;
-  width: auto;
-  min-width: 196px;
-  height: auto;
-  padding: 5px;
-  border-radius: 14px;
-  flex-direction: column;
-  align-items: stretch;
-  background: var(--player-bg);
-  opacity: 1;
-  pointer-events: auto;
-  z-index: 60;
-  animation: ui-menu-in 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes ui-menu-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: none; }
-}
-
-/* 来源 .drawer（全屏抽屉）。对话框只需要底部一段，并沿用 .drawer 的玻璃材质；
-   底色同样加厚为 --player-bg（vendor 层里最厚的 popover 玻璃）：弹层里是整张
-   表单，96% 以外的透明度在没有 backdrop-filter 时读不清。 */
-dialog.app-dialog.drawer {
-  position: fixed;
-  inset: auto 0 0 0;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  max-height: 92vh;
-  border-radius: 20px 20px 0 0;
-  border-top: 1px solid var(--hairline);
-  background: var(--player-bg);
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
-  overflow: hidden;
-}
-dialog.app-dialog.drawer:not([open]) { display: none; }
-
-/* 来源 .shelf-title：桌面版式里它带躲侧栏的左内边距（vendor 层不搬运），
-   面板里改成等宽内边距。
-   这一行必须始终是单行：标题省略、计数不折行、工具区固定宽度。 */
-.shelf-title--group {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 8px;
-  padding: 0 16px;
-  margin: 22px 0 6px;
-  line-height: 1.3;
-}
-.shelf-title--group:first-child { margin-top: 4px; }
-
-/* 来源 .songlist：vendor 层等宽 16px 内缩，面板沿用。 */
-.songlist { margin: 0 16px; }
-
-/* 来源 .search-field：vendor 层不定宽，面板里撑满并留出与其它分组一致的边距。
-   S11'：几何对齐模板 .sidebar__search-btn（30px 高）—— 但本框承载真实输入
-   功能，保留输入形态，只把高度降到 30px、字号用 callout 刻度；材质本来就是
-   同一套清玻璃（--field + 发丝线 + 顶缘光线），不另改。 */
-.search-field {
-  width: auto;
-  height: 30px;
-  margin: 8px 16px 0;
-}
-.search-field svg { width: 14px; height: 14px; }
-.search-field input { font-size: var(--font-callout-size); line-height: var(--font-callout-lh); letter-spacing: var(--track-12); }
-
-/* ================= 新组件（参考项目没有的） ================= */
-
-.main { display: block; }
-
-/* 顶栏：品牌沿用 .sidebar__logo* 的字号与间距，只排布三个动作按钮。
-   S2'：高度 50 → 48px，对齐模板 --chrome-h（sidebar__chrome 同款 48px 头）；
-   品牌 leading / 动作 trailing 的语义不变。border-bottom 分隔保留：侧边栏
-   无系统窗控也没有桌面窗体的侧栏描边，滚动内容会从 20px 圆角容器顶穿过，
-   hairline 是窄面板里「头与内容同容器」时唯一可靠的内部分隔（模板桌面
-   版用的是让位布局，分隔由留白承担，此处不适用）。 */
-.panel__head {
+.toolbar {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: none;
   height: 48px;
-  padding: 0 10px 0 18px;
-  background: var(--nav-bg);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--hairline);
+  padding: 0 10px 0 16px;
 }
-.panel__head .sidebar__logo { margin-right: auto; }
-.panel__head .sidebar__logo-apple { border-radius: 6px; }
-.panel__head-actions { display: flex; align-items: center; gap: 2px; }
-/* 工具栏标题刻度（模板 .toolbar__title：title1 22px/700/track-22）落在
-   面板品牌名上 —— vendor 层的 19px 是桌面 logo 取值，窄幅顶栏按 toolbar
-   的前导标题处理。 */
-.panel__head .sidebar__logo-text {
+.toolbar__brand { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; }
+.toolbar__logo { width: 22px; height: 22px; border-radius: 6px; }
+/* 品牌名沿用 toolbar__title 刻度（title1 22px/700/track-22）。 */
+.toolbar__brand-text {
   font-size: var(--font-title1-size);
   line-height: var(--font-title1-lh);
   font-weight: 700;
   letter-spacing: var(--track-22);
+  color: var(--text-strong);
 }
+.toolbar__actions { display: flex; align-items: center; gap: 2px; }
 
-/* 来源 .pbtn：vendor 里它是墨色传输键。面板没有播放器，所以只复用它的几何
-   （32×26 / 圆角 6 / 居中）与 hover，颜色换成中性文字色 —— 否则列表每行
-   一个亮块，噪声太大。 */
-.pbtn {
-  position: relative;
+/* Ghost 图标按钮：透明 + hover --hover（官方 ghost 语言），非玻璃 pane。
+   .icon-btn--boxed 是编辑器里「优化」按钮的清玻璃方块变体。 */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   color: var(--text-dim);
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
-.pbtn:hover { color: var(--text); opacity: 1; }
-.pbtn .icon { width: 19px; height: 19px; }
-.pbtn .spinner { position: absolute; top: 50%; left: 50%; margin: -7px 0 0 -7px; }
-.pbtn--square {
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--glass-edge);
-  border-radius: 10px;
-  background: var(--glass-control);
-  box-shadow: inset 0 1px 0 var(--glass-control-rim);
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.icon-btn .icon { width: 19px; height: 19px; }
+.icon-btn .sg-dots {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
+.icon-btn.is-loading { position: relative; }
+.icon-btn--boxed {
+  border: 1px solid var(--field-edge);
+  background: var(--field);
+  box-shadow: inset 0 1px 0 var(--field-rim);
+}
+.icon-btn--boxed:hover { background: var(--field); }
+.icon-btn--boxed.is-loading { position: relative; }
 
-/* 未连接引导：沿用参考的字阶与 .btn-pill */
-.setup { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 52px 26px 0; text-align: center; }
-.setup__icon {
+/* ================= 未连接引导 ================= */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 52px 26px 0;
+  text-align: center;
+}
+/* 官方 Empty 语言：清玻璃图标盒。 */
+.setup__media {
   display: grid;
   place-items: center;
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  background: var(--nav-selected);
+  background: var(--glass-control);
+  box-shadow:
+    inset 0 1px 0 var(--glass-control-rim),
+    0 0 0 1px var(--glass-edge);
   color: var(--text-dim2);
 }
-.setup__icon .icon { width: 26px; height: 26px; }
-/* S7：标题刻度对齐 toolbar__title（title1 22px/700/track-22）。 */
+.setup__media .icon { width: 26px; height: 26px; }
 .setup__title {
   margin: 4px 0 0;
   font-size: var(--font-title1-size);
@@ -244,191 +106,114 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   font-weight: 700;
   letter-spacing: var(--track-22);
 }
-.setup .detail-foot { padding: 0; text-align: center; }
 
-/* 保存胶囊内部的封面方框。内容同样只有「favicon」或「首字」其中之一，
-   由 renderSaveArt / coverContent 决定，不再靠层叠遮挡。 */
-.save-pill__art { display: grid; place-items: center; overflow: hidden; background: var(--nav-selected); }
-.save-pill__art .cover-initial { font-size: 16px; }
-.save-pill__meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; margin: 0 10px; }
-.save-pill__meta .lcd-title, .save-pill__meta .lcd-artist { margin: 0; }
-.save-pill .btn-pill { flex: none; }
+/* ================= 搜索域 ================= */
 
-/* 收藏夹分组标题里的折叠开关 */
-.tree-toggle {
-  display: inline-flex;
+.search-field { margin: 8px 16px 0; }
+
+/* ================= 保存卡（官方 Item：ItemMedia + 内容列 + 行尾墨面按钮） ================= */
+
+.save-card { margin: 12px 16px 0; padding: 10px 12px; }
+.save-card .item__media { margin-right: 10px; }
+.save-card .item__title { color: var(--text-strong); }
+.save-card .btn-pill { flex: none; }
+
+/* ================= Item 材质（书签行 / 保存卡共用） =================
+   官方 Item + bare-box pane：--panel 面、--glass-edge 发丝线、--glass-inner
+   内圈 rim；行与行之间留 gap（ItemGroup），无通栏分隔线。 */
+
+.item {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0;
-  font: inherit;
-  color: inherit;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 10px;
+  background: var(--panel);
+  background-clip: padding-box;
+  box-shadow: inset 0 1px 0 var(--glass-inner);
 }
-.tree-toggle__chevron { width: 15px; height: 15px; color: var(--text-dim); transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
-.tree-toggle[aria-expanded="false"] .tree-toggle__chevron { transform: rotate(-90deg); }
-.tree-current { flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree-body .nav-group { padding: 0 12px; }
-.tree-tools { display: flex; justify-content: flex-end; padding: 2px 16px 0; }
+.item:hover { background: var(--hover); }
+.item:focus-visible { outline: 2px solid var(--text-dim2); outline-offset: 2px; }
 
-/* 收藏夹行：li 直接复用参考项目的 .nav-item / .nav-item--selected > .nav-link 选中态，
-   折叠开关用绝对定位放进链接的左内边距里（两个都是 button，必须同级，不能嵌套）。 */
-.collection-item { position: relative; }
-.collection-item > .nav-link { padding-left: calc(30px + var(--depth, 0) * 14px); }
-.collection-node { display: block; }
-.collection-toggle {
-  position: absolute;
-  left: calc(var(--depth, 0) * 14px + 5px);
-  top: 50%;
+/* ItemMedia（image 40px，窄幅 38px）：官方 rounded-sm + ItemGroup 组合 */
+.item__media {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 26px;
-  transform: translateY(-50%);
-  color: var(--text-dim2);
-  z-index: 1;
-}
-.collection-toggle .icon { width: 12px; height: 12px; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
-.collection-toggle[data-expanded="false"] .icon { transform: rotate(-90deg); }
-.collection-dot {
-  position: absolute;
-  left: calc(var(--depth, 0) * 14px + 13px);
-  top: 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--text-dim2);
-  transform: translateY(-50%);
-}
-/* 特殊行（全部书签 / 未分类）用参考项目的 .nav-icon 尺寸，只是改为绝对定位 */
-.collection-glyph {
-  position: absolute;
-  left: calc(var(--depth, 0) * 14px + 8px);
-  top: 50%;
-  margin: 0;
-  transform: translateY(-50%);
-}
-.collection-glyph .icon { width: 17px; height: 17px; }
-.nav-item--selected .collection-glyph { color: var(--text-strong); }
-.collection-group-title {
-  padding: 10px 8px 2px;
-  color: var(--text-dim);
-  /* S7：分组小节标题对齐模板 .nav-section-title 刻度（callout 12px/600/track-12）。 */
-  font-size: var(--font-callout-size);
-  line-height: var(--font-callout-lh);
-  font-weight: 600;
-  letter-spacing: var(--track-12);
-}
-.collection-label { flex: 1; min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-
-/* 列表头：勾选 + 标题 + 数量 + 排序。
-   #resultCount 与 .tree-current 都带着参考项目的 .card-sub，而 .card-sub 是
-   两行截断盒（display:-webkit-box + line-clamp:2），放在这行里会把「7 项」
-   折成「7」「项」两行 —— 这里改回普通块并强制单行。 */
-.list-pick { display: flex; align-items: center; gap: 9px; flex: 1 1 auto; min-width: 0; cursor: pointer; }
-.list-pick > #listTitle {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* 计数与「收藏夹」右侧的当前名都带着参考项目的 .card-sub，而 .card-sub 是
-   两行截断盒（display:-webkit-box + line-clamp:2），会把「7 项」折成两行 —— 
-   这里改回普通块并强制单行。 */
-.list-pick > #resultCount {
-  display: block;
+  width: 38px;
+  height: 38px;
   flex: none;
+  border-radius: 6px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--glass-state);
+  box-shadow: 0 0 0 1px var(--glass-edge);
 }
-.tree-current {
-  display: block;
-  flex: 1 1 auto;
-  min-width: 0;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.shelf-title__tools { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
-.loading-label { white-space: nowrap; }
-
-/* 20px 圆形复选框（vendor 层的 .lcd-art 同一套圆形/方角语言） */
-.pick {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  flex: none;
-  margin: 0;
-  border: 1.5px solid var(--text-dim2);
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-.pick:hover { border-color: var(--text-dim); }
-.pick:checked {
-  border-color: transparent;
-  background-color: var(--foreground);
-  background-image: var(--pick-check);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 12px;
-}
-.pick:indeterminate {
-  border-color: transparent;
-  background-color: var(--foreground);
-  background-image: linear-gradient(var(--pick-glyph), var(--pick-glyph));
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 9px 2px;
-}
-.pick:disabled { opacity: 0.5; cursor: default; }
-
-/* 排序下拉的形状来自 ui-base.css 的 .select-inline，这里只收窄一点宽度 */
-.select-inline { max-width: 112px; }
-
-/* 书签行：.song-row 提供 52px / gap 14 / 圆角 6 / hover --nav-hover，
-   这里只补「封面 + 两行文字 + •••」的排布与标签 */.song-row { cursor: pointer; }
-.song-row__pick { align-self: center; }
-/* 参考项目的 .song-row__t .sub 只被父级裁切，这里补上省略号 */
-.song-row__t .sub {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tags { display: inline-flex; gap: 5px; margin-left: 6px; vertical-align: 1px; }
-.song-row__more { flex: none; }
-.song-row:hover .song-row__more, .song-row:focus-within .song-row__more { color: var(--text); }
-
-/* 封面方块：里面只放「照片」或「首字」其中之一（见 coverContent）。
-   占位底色用主题的中性 tint（--nav-selected），不硬编码色值。 */
-.song-row__cover {
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: var(--nav-selected);
-}
-.cover-initial {
+.item__media .cover-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+.item__media .cover-initial {
   color: var(--text-dim2);
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
 }
-.cover-photo {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+
+/* ItemContent：标题（body 13/600 单行）+ 描述（footnote muted 单行） */
+.item__content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.item__title {
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item__desc {
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  letter-spacing: var(--track-10);
+  color: var(--text-dim2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item__desc .tag { margin-left: 5px; vertical-align: 1px; }
+
+/* ItemActions：行尾按钮平时隐藏，hover / 键盘聚焦所在行才浮现。 */
+.item .more-btn {
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.item:hover .more-btn,
+.item:focus-within .more-btn { opacity: 1; }
+@media (hover: none) {
+  .item .more-btn { opacity: 1; }
 }
 
-/* 标签：用主题唯一的中性 tint（--nav-selected），不引入新的强调色 */
+/* ================= ItemGroup（留缝卡片流） ================= */
+
+.item-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 16px 0;
+}
+.item-group .item { cursor: pointer; }
+.item-group .item__pick { flex: none; }
+
+/* ================= 标签（官方 tag：清玻璃小块） ================= */
+
 .tag {
+  display: inline-block;
   max-width: 84px;
   padding: 1px 7px;
   border-radius: 1000px;
-  background: var(--nav-selected);
+  background: var(--glass-state);
+  box-shadow:
+    inset 0 1px 0 var(--glass-state-rim),
+    0 0 0 1px var(--glass-state-edge);
   color: var(--text-dim2);
   font-size: 10px;
   overflow: hidden;
@@ -436,28 +221,299 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   white-space: nowrap;
 }
 
-/* 载入更多与空状态 */
-.load-more { align-self: stretch; margin: 14px 16px 0; }
-.empty-note { display: flex; flex-direction: column; gap: 4px; text-align: center; padding: 48px 24px; }
+/* ================= 收藏夹树（官方 SidebarMenuButton / MenuSub 语言） ================= */
 
-/* 选择条内部 */
-.selection-bar__spacer { flex: 1; }
-.selection-bar__count, #selectionCount { font-size: 13px; font-weight: 600; white-space: nowrap; }
+/* 分组标题：SidebarGroupLabel 刻度（callout 12/600/track-12）。 */
+.menu-label {
+  padding: 10px 10px 4px;
+  font-size: var(--font-callout-size);
+  line-height: var(--font-callout-lh);
+  font-weight: 600;
+  letter-spacing: var(--track-12);
+  color: var(--text-dim);
+}
 
-/* 弹出层内部：表单组织在 ui-base.css（两个页面共用）；
-   这里只保留 sidepanel 特有的字段行内排布。 */
-.field-inline { display: flex; align-items: center; gap: 8px; }
-.field-inline .field-input { flex: 1; min-width: 0; }
-.drawer--confirm .sheet-form { padding-top: 20px; }
+.menu { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
 
-.details {
+/* SidebarMenuButton：32px、rounded-md（9px）、chevron/图标在按钮内部槽位。 */
+.menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  color: var(--text);
+  text-align: left;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+.menu-btn:hover { background: var(--hover); }
+.menu-btn--selected {
+  background-color: var(--glass-state);
+  box-shadow:
+    inset 0 1px 0 var(--glass-state-rim),
+    0 0 0 1px var(--glass-state-edge);
+  color: var(--text-strong);
+  font-weight: 500;
+}
+.menu-btn__chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--text-dim);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 折叠槽位：父行放 chevron、叶子行留空，宽度与特殊行的图标槽一致，
+   保证标签竖向对齐。 */
+.menu-btn__toggle {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.menu-btn[aria-expanded="false"] .menu-btn__chevron { transform: rotate(-90deg); }
+.menu-btn__icon { width: 17px; height: 17px; flex: none; display: grid; place-items: center; color: var(--text-dim2); }
+.menu-btn__icon .icon { width: 17px; height: 17px; }
+.menu-btn__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-btn--selected .menu-btn__icon { color: var(--text-strong); }
+
+/* SidebarMenuSub：缩进 + 左侧 1px 竖向发丝线导轨，层级靠结构表达。 */
+.menu-sub {
+  margin: 2px 0 4px 14px;
+  padding-left: 8px;
+  border-left: 1px solid var(--hairline);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
+  gap: 2px;
 }
+
+.tree-body { padding-bottom: 4px; }
+.tree-tools { display: flex; justify-content: flex-end; padding: 2px 16px 0; }
+
+/* ================= 列表头 =================
+   普通 flex 行；计数用 tabular-nums（官方 Type：变化中的数字不跳动）。 */
+
+.list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  margin: 18px 0 0;
+}
+.list-head:first-of-type { margin-top: 14px; }
+.list-head__pick {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-17);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.list-head__pick > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-head__meta {
+  flex: none;
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  letter-spacing: var(--track-10);
+  color: var(--text-dim2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.list-head__meta--current { flex: 0 1 auto; }
+.list-head__tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-17);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--text); }
+.link-btn__chevron { width: 16px; height: 16px; color: var(--text-dim); }
+.link-btn[aria-expanded="false"] .link-btn__chevron { transform: rotate(-90deg); }
+.link-btn--muted { font-size: var(--font-callout-size); line-height: var(--font-callout-lh); font-weight: 600; letter-spacing: var(--track-12); color: var(--text-dim); }
+.link-btn--muted:hover { color: var(--text); }
+
+/* ================= 选择条（popover 最厚档玻璃 pane） ================= */
+
+.selection-bar {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--player-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  z-index: 50;
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    inset 0 -1px 0 var(--popover-under),
+    0 0 0 1px var(--popover-edge),
+    0 12px 32px -14px var(--glass-shade),
+    0 6px 16px -6px var(--glass-lift);
+}
+.selection-bar__spacer { flex: 1; }
+.selection-bar__count {
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================= 弹出菜单（popover 玻璃 pane + menu-item 行） ================= */
+
+.menu-pane {
+  position: fixed;
+  min-width: 196px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--player-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  z-index: 60;
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    inset 0 -1px 0 var(--popover-under),
+    0 0 0 1px var(--popover-edge),
+    0 24px 60px -18px var(--glass-shade),
+    0 6px 16px -6px var(--glass-lift);
+  animation: ui-menu-in 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes ui-menu-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  color: var(--text);
+  text-align: left;
+}
+.menu-item:hover { background: var(--hover); }
+.menu-item__icon { width: 17px; height: 17px; flex: none; display: grid; place-items: center; color: var(--text-dim2); }
+.menu-item__icon .icon { width: 17px; height: 17px; }
+.menu-item--danger, .menu-item--danger .menu-item__icon { color: var(--danger); }
+.menu-item--danger:hover { background: var(--danger-soft); }
+
+/* ================= Toast（popover 玻璃胶囊） ================= */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-radius: 1000px;
+  background: var(--player-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  z-index: 70;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  letter-spacing: var(--track-13);
+  text-align: center;
+  transform: translateX(-50%) translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    inset 0 -1px 0 var(--popover-under),
+    0 0 0 1px var(--popover-edge),
+    0 12px 32px -14px var(--glass-shade),
+    0 6px 16px -6px var(--glass-lift);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { background: var(--danger); color: #fff; }
+
+/* ================= 空状态（官方 Empty 语言） ================= */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.empty__media {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 6px;
+  border-radius: 14px;
+  background: var(--glass-control);
+  box-shadow:
+    inset 0 1px 0 var(--glass-control-rim),
+    0 0 0 1px var(--glass-edge);
+  color: var(--text-dim2);
+}
+.empty__media .icon { width: 20px; height: 20px; }
+.empty__title {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-lh);
+  font-weight: 600;
+  letter-spacing: var(--track-13);
+  color: var(--text);
+}
+.empty__desc {
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  letter-spacing: var(--track-10);
+  color: var(--text-dim2);
+}
+
+/* ================= 加载更多 / 行内小链接 ================= */
+
+.load-more { align-self: stretch; margin: 14px 16px 0; }
+.details { /* 编辑器「更多字段」折叠块 */ }
 .details > summary {
   display: flex;
   align-items: center;
@@ -474,37 +530,23 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .details__chevron { width: 14px; height: 14px; transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
 .details[open] .details__chevron { transform: rotate(90deg); }
 
-/* 弹出菜单里的行 */
-.menu .nav-link { width: 100%; }
-.nav-link--danger, .nav-link--danger .nav-icon { color: var(--danger); }
-.nav-link--danger:hover { background: var(--danger-soft); }
-
-/* .btn-pill 的变体在 ui-base.css（两个页面共用） */
-
-/* ================= 自适应（面板宽 320–420px 的窄幅档位） ================= */
+/* ================= 自适应（面板宽 300–420px 窄幅档位） ================= */
 
 @media (max-width: 420px) {
-  /* 排序下拉收窄，把宽度让给收藏夹名，保证列表头仍是单行 */
   .select-inline { max-width: 84px; }
 }
 
 @media (max-width: 360px) {
-  .panel { --sb-gap: 8px; }
-  .save-pill, .search-field { margin-left: 12px; margin-right: 12px; }
-  .shelf-title--group { padding: 0 12px; }
-  .songlist { margin: 0 12px; }
-  .tree-body .nav-group { padding: 0 8px; }
-  .song-row { gap: 10px; }
+  .save-card { margin-left: 12px; margin-right: 12px; }
+  .item-group { margin-left: 12px; margin-right: 12px; }
+  .search-field { margin-left: 12px; margin-right: 12px; }
+  .list-head { padding: 0 12px; }
+  .menu { padding: 0 8px; }
+  .item { gap: 8px; padding: 7px 9px; }
   .tag { display: none; }
-  /* 窄屏靠「封面与按钮各小一圈」而不是压缩内缩来省宽度：
-     内缩低于圆帽几何需要的量，图标就会又贴回圆角上 */
-  .save-pill { padding: 0 16px; }
-  .save-pill__art { width: 38px; height: 38px; }
-  .save-pill .btn-pill { padding: 0 16px; }
-  .btn-pill--small { padding: 0 10px; }
 }
 
 @media (max-width: 300px) {
-  .song-row__t .sub { display: none; }
+  .item__desc { display: none; }
   #resultCount { display: none; }
 }

@@ -1,44 +1,58 @@
 /* ============================================================
-   设置页 —— 与侧边栏共用 src/vendor/solid-glass.css 的 token 与组件
-   这里只写版式：把 vendor 层的浮起面板假设改成整页居中单列。
+   设置页 —— Solid Glass 官方组件语言（2.1 前端重做）
+   与侧边栏共用 src/vendor/solid-glass.css 的 token 与 ui-base.css 的
+   共享控件；这里只写版式：glass-panel 卡片分组、card-row 行组织、
+   segmented 凹槽分段控件的几何。
    ============================================================ */
 
-/* vendor 的 .page-title 只带字号字重（躲侧栏的桌面内边距不在 vendor 层）；
-   设置页给对称内边距。S7：34 → 26px（--font-large-title-size，vendor 层
-   .page-title 已改引 token，这里只留版式）。 */
+.page { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; }
+
 .options-title {
   padding: 0;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
+  /* large-title 刻度（26px/700/track-26）。 */
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-lh);
+  font-weight: 700;
+  letter-spacing: var(--track-26);
+  color: var(--text-strong);
 }
-.options .page-inner { padding-bottom: 72px; }
+.options-sub {
+  margin: 0;
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  letter-spacing: var(--track-10);
+  color: var(--text-dim2);
+}
 
 .options-inner {
   width: min(640px, calc(100% - 64px));
   margin: 0 auto;
   padding-top: 48px;
+  padding-bottom: 72px;
 }
 
 .options-head { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
 .options-head__icon { width: 56px; height: 56px; border-radius: 16px; flex: none; }
+.options-head__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
-/* ---------- S8'：Panel 式卡片分组 ----------
-   模板 settings.tsx 的 Panel 结构：.glass-panel 最薄档玻璃整卡 + 32px
-   头部 + 内容体。头部沿用 .shelf-title（title2 刻度）做面板名；
-   行组织仍是 .nav-group / .options-row（label+desc 左 / 控件右）。 */
-.options-card {
+/* ---------- glass-panel 卡片分组 ----------
+   .glass-panel（最薄档玻璃）由 vendor 层提供材质；这里只给几何：
+   radius 14px、32px 头部、内容体。 */
+.card {
   margin-top: 20px;
   border-radius: 14px;
   overflow: hidden;
 }
-.options-card:first-of-type { margin-top: 0; }
-.options-card__head {
+.card:first-of-type { margin-top: 0; }
+.card__head {
   display: flex;
   align-items: center;
   min-height: 32px;
   padding: 0 16px;
   border-bottom: 1px solid var(--hairline);
 }
-.options-card__title {
+.card__title {
   margin: 0;
   font-size: var(--font-callout-size);
   line-height: var(--font-callout-lh);
@@ -47,16 +61,15 @@
   color: var(--text-dim);
   text-transform: none;
 }
-.options-card__body { padding: 12px 16px 16px; }
+.card__body { padding: 12px 16px 16px; }
 
-/* vendor 层 ≤500px 会把 .detail-foot 居中（假设是手机版详情页），设置页保持左对齐 */
-.options-help, .options-guide { padding: 0; margin: 0 0 4px; text-align: left; }
-.options-hint { margin: 8px 0 0; text-align: left; }
+/* ---------- 行内元素 ---------- */
+
 code {
   padding: 2px 5px;
   border-radius: 6px;
   background: var(--nav-selected);
-  color: var(--accent-blue);
+  color: var(--code-inline);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px;
 }
@@ -67,6 +80,12 @@ code {
 .options-row-inline .btn-pill { flex: none; }
 
 .options-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.options-group { margin-top: 8px; }
+.options-hint { margin: 6px 0 0; }
+.options-help, .options-guide { margin: 0 0 4px; }
+.options-guide { padding-left: 20px; }
+.options-guide li::marker { color: var(--text-dim2); }
+.options-guide strong { color: var(--text); }
 
 .status-message {
   min-height: 18px;
@@ -75,7 +94,8 @@ code {
   font-size: 13px;
   line-height: 1.5;
 }
-.status-message.success { color: var(--accent-blue); }
+/* 语义色相（官方 Theming：色相只留给有意义之处）。 */
+.status-message.success { color: var(--success); }
 .status-message.error { color: var(--danger); }
 
 .account {
@@ -85,56 +105,70 @@ code {
   margin-top: 14px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: var(--nav-selected);
+  background: var(--glass-state);
+  box-shadow:
+    inset 0 1px 0 var(--glass-state-rim),
+    0 0 0 1px var(--glass-state-edge);
 }
-.account__dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--accent-blue); }
+.account__dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--success); }
 .account__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .account__copy strong {
-  /* S7：headline 刻度。 */
   font-size: var(--font-headline-size);
   line-height: var(--font-headline-lh);
   font-weight: 600;
   letter-spacing: var(--track-13);
 }
 
-/* 设置行：行本体复用 vendor 层的 .nav-group / .nav-item / .nav-link
-   （33px 胶囊行、hover --nav-hover），这里只把它撑到能放两行文字并
-   改回矩形圆角 —— 卡片内的行不是侧栏导航，胶囊是树导航专属语言。
-   vendor 的 nav 行没有前置图标，设置行也不放：没有语义合适的图标，
-   硬套会让「明暗模式」配上一张专辑图标。 */
-.options-group { margin-top: 0; }
-.options-row {
-  min-height: 56px;
-  border-radius: 10px;
-  padding: 9px 12px;
-  gap: 12px;
-  cursor: default;
+/* ---------- segmented：官方凹槽分段控件 ----------
+   容器是凹槽（光反向：上唇阴影、下缘光线）；选中段是唯一状态的
+   清玻璃小块（rim + 发丝线）。 */
+.segmented {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--glass-state);
+  box-shadow:
+    inset 0 1px 1.5px var(--well-shade),
+    inset 0 -1px 0 var(--well-rim),
+    0 0 0 1px var(--glass-edge);
 }
-.options-row:hover { background: var(--nav-hover); }
-.options-row__copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.options-row__copy label {
-  /* S7：设置行标题用 headline 刻度（13px/600）。 */
-  font-size: var(--font-headline-size);
-  line-height: var(--font-headline-lh);
+.segmented__btn {
+  border: 0;
+  border-radius: 7px;
+  min-height: 26px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  letter-spacing: var(--track-10);
+  color: var(--text-dim2);
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.segmented__btn:hover { color: var(--text); }
+.segmented__btn[aria-checked="true"] {
+  background: var(--glass-state);
+  box-shadow:
+    inset 0 1px 0 var(--glass-state-rim),
+    0 0 0 1px var(--glass-state-edge);
+  color: var(--text-strong);
   font-weight: 600;
-  letter-spacing: var(--track-13);
 }
-.options-row__control { width: auto; min-width: 168px; flex: none; margin-left: auto; }
-.options-row__input { width: auto; min-width: 168px; height: 32px; flex: none; margin-left: auto; }
 
-.options-guide { padding: 0 0 0 20px; margin: 0; }
-.options-guide li::marker { color: var(--text-dim2); }
-.options-guide strong { color: var(--text); }
+/* ---------- 自适应 ---------- */
 
 @media (max-width: 560px) {
   .options-inner { width: calc(100% - 36px); padding-top: 28px; }
   .options-head { gap: 14px; }
   .options-head__icon { width: 46px; height: 46px; border-radius: 14px; }
-  .options-card__body { padding: 10px 12px 12px; }
-  .options-card__head { padding: 0 12px; }
-  .options-row { flex-wrap: wrap; }
-  .options-row__control, .options-row__input { width: 100%; min-width: 0; flex: 1 1 100%; }
+  .card__body { padding: 10px 12px 12px; }
+  .card__head { padding: 0 12px; }
+  .card-row { flex-wrap: wrap; }
+  .card-row__control, .card-row__input { width: 100%; min-width: 0; flex: 1 1 100%; margin-left: 0; }
   .options-row-inline { flex-direction: column; }
   .options-row-inline .btn-pill { width: 100%; }
   .options-actions .btn-pill { flex: 1; }
+  .segmented { width: 100%; justify-content: stretch; }
+  .segmented__btn { flex: 1; }
 }
