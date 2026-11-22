@@ -1,13 +1,7 @@
-import {
-  DEFAULT_THEME_SETTINGS,
-  THEME_COLORS
-} from './utils.mjs';
+import { DEFAULT_THEME_SETTINGS } from './utils.mjs';
 
 function normalizeSettings(settings = {}) {
   return {
-    themeColor: Object.prototype.hasOwnProperty.call(THEME_COLORS, settings.themeColor)
-      ? settings.themeColor
-      : DEFAULT_THEME_SETTINGS.themeColor,
     themeMode: ['system', 'light', 'dark'].includes(settings.themeMode)
       ? settings.themeMode
       : DEFAULT_THEME_SETTINGS.themeMode
@@ -48,7 +42,7 @@ export function applyTheme(settings = {}) {
   const normalized = normalizeSettings(settings);
   const effectiveMode = normalized.themeMode === 'system' ? systemTheme() : normalized.themeMode;
   const root = document.documentElement;
-  root.dataset.themeColor = normalized.themeColor;
+  delete root.dataset.themeColor; /* 7 色主题色已移除；清掉旧版写入的残留属性 */
   root.dataset.themeMode = normalized.themeMode;
   root.dataset.themeEffective = effectiveMode;
   root.style.colorScheme = effectiveMode;
@@ -57,17 +51,14 @@ export function applyTheme(settings = {}) {
 
 export async function initTheme() {
   watchAccessibilityPreferences();
-  const stored = await chrome.storage.local.get(['themeColor', 'themeMode']);
+  const stored = await chrome.storage.local.get(['themeMode']);
   const settings = applyTheme(stored);
 
   if (!initTheme.systemListener && window.matchMedia) {
     initTheme.systemListener = window.matchMedia('(prefers-color-scheme: dark)');
     const updateSystemTheme = () => {
       if (document.documentElement.dataset.themeMode === 'system') {
-        applyTheme({
-          themeColor: document.documentElement.dataset.themeColor,
-          themeMode: 'system'
-        });
+        applyTheme({ themeMode: 'system' });
       }
     };
     if (initTheme.systemListener.addEventListener) initTheme.systemListener.addEventListener('change', updateSystemTheme);
@@ -76,11 +67,8 @@ export async function initTheme() {
 
   if (!initTheme.storageListener) {
     initTheme.storageListener = (changes, areaName) => {
-      if (areaName !== 'local' || (!changes.themeColor && !changes.themeMode)) return;
-      applyTheme({
-        themeColor: changes.themeColor?.newValue || document.documentElement.dataset.themeColor,
-        themeMode: changes.themeMode?.newValue || document.documentElement.dataset.themeMode
-      });
+      if (areaName !== 'local' || !changes.themeMode) return;
+      applyTheme({ themeMode: changes.themeMode?.newValue || document.documentElement.dataset.themeMode });
     };
     chrome.storage.onChanged.addListener(initTheme.storageListener);
   }

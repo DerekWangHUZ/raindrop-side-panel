@@ -179,15 +179,12 @@ test('vendored 文件保持可溯源，且 token 取值未被改动', () => {
   const withoutComments = SOLID_GLASS_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
   const mediaQueries = matches(withoutComments, /@media \(prefers-color-scheme: (\w+)\)/g);
   assert.deepEqual(mediaQueries, ['light'], `主题媒体查询应只剩 token 块那一处，实际：${mediaQueries.join(', ')}`);
-  // 主题色融合：7 个主题色染 brand/强调层，材质保持中性灰玻璃。
-  // matches() 返回的已是第 1 个捕获组（主题色 id）。
-  const THEME_COLOR_IDS = ['violet', 'blue', 'teal', 'green', 'orange', 'rose', 'gray'];
-  const darkSwatches = matches(SOLID_GLASS_CSS, /:root\[data-theme-color="(\w+)"\] \{ --accent-blue: #[0-9a-f]+; \}/g);
-  assert.deepEqual(darkSwatches, THEME_COLOR_IDS, '深色主题色清单应与 utils.mjs 的 7 色一致');
-  const lightSwatches = matches(SOLID_GLASS_CSS, /:root\[data-theme-effective="light"\]\[data-theme-color="(\w+)"\] \{ --accent-blue: #[0-9a-f]+; \}/g);
-  assert.deepEqual(lightSwatches, THEME_COLOR_IDS, '浅色主题色清单应与 utils.mjs 的 7 色一致');
-  // brand 层是主题色的出口：强调 token 名保留，brand 只做别名。
-  assert.match(SOLID_GLASS_CSS, /--brand: var\(--accent-blue\);/, '--brand 应是 --accent-blue 的别名');
+  // 主题色：7 色 data-theme-color 预设已移除（官方 theming 只有 dark/light，
+  // "interface has no colour of its own"）——accent 回归中性灰，--brand 用官方青绿直值。
+  assert.doesNotMatch(SOLID_GLASS_CSS, /data-theme-color=/, 'vendor 层不应再有 7 主题色预设');
+  assert.match(SOLID_GLASS_CSS, /--accent-blue: #a3aab5;/, '深色 accent 应为中性灰');
+  assert.match(SOLID_GLASS_CSS, /--accent-blue: #5f6368;/, '浅色 accent 应为中性灰');
+  assert.match(SOLID_GLASS_CSS, /--brand: oklch\(0\.78 0\.13 166\);/, '--brand 应为官方原版青绿直值');
 });
 
 test('页面样式表只做几何覆盖，不重复定义主题 token', () => {
@@ -252,7 +249,7 @@ test('散点字号全部改引字阶 token，页面层不再有裸 px 标题字�
     '弹层标题应用 toolbar__title 刻度（22px）');
 });
 
-test('导航选中态是 999px 胶囊 + glass-state 三件套，7 主题色经 accent 染色', () => {
+test('导航选中态是 999px 胶囊 + glass-state 三件套，无彩色染色', () => {
   // S4：模板 chrome.css 的胶囊选中行 —— min-height 33px、圆角 999px、
   // 「唯一状态」三件套（清玻璃 + 顶缘光线 + 发丝线）。
   const link = SOLID_GLASS_CSS.slice(SOLID_GLASS_CSS.indexOf('.nav-link {'),
@@ -264,10 +261,8 @@ test('导航选中态是 999px 胶囊 + glass-state 三件套，7 主题色经 a
   assert.match(selected, /var\(--nav-selected\)/, '选中态底色是唯一状态玻璃');
   assert.match(selected, /var\(--glass-state-rim\)/, '选中态要有顶缘光线');
   assert.match(selected, /var\(--glass-state-edge\)/, '选中态要有发丝线');
-  // 7 主题色经 --accent-blue 的 14% 染色变体（模板 accent 染色模式）。
-  assert.match(SOLID_GLASS_CSS,
-    /:root\[data-theme-color\] \.nav-item--selected > \.nav-link \{[^}]*color-mix\(in oklch, var\(--accent-blue\) 14%, transparent\)/s,
-    '彩色主题选中态应用 accent 14% 染色');
+  // 7 主题色染色块已移除：选中态不再出现 accent 染色。
+  assert.doesNotMatch(SOLID_GLASS_CSS, /color-mix\(in oklch, var\(--accent-blue\) 14%/, '选中态不应再有 accent 14% 染色');
 });
 
 // --- 运行时无障碍降级与自绘滚动条（S10 / S6'） ------------------------------

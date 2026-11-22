@@ -1,13 +1,3 @@
-export const THEME_COLORS = {
-  violet: { label: '紫罗兰', light: '#6d5dfc', dark: '#8a7cff' },
-  blue: { label: '蓝色', light: '#2563eb', dark: '#60a5fa' },
-  teal: { label: '青色', light: '#0f766e', dark: '#2dd4bf' },
-  green: { label: '绿色', light: '#15803d', dark: '#4ade80' },
-  orange: { label: '橙色', light: '#c2410c', dark: '#fb923c' },
-  rose: { label: '玫红', light: '#be123c', dark: '#fb7185' },
-  gray: { label: '灰色', light: '#5f6368', dark: '#a3aab5' }
-};
-
 export const THEME_MODES = [
   { id: 'system', label: '跟随系统' },
   { id: 'light', label: '固定浅色' },
@@ -15,7 +5,6 @@ export const THEME_MODES = [
 ];
 
 export const DEFAULT_THEME_SETTINGS = {
-  themeColor: 'violet',
   themeMode: 'system'
 };
 

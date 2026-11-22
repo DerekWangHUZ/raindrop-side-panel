@@ -21,10 +21,7 @@
    2. 字阶：模板只有 foreground/muted-foreground 两档；扩展沿用旧的四档
       透明度（92/60/40%），以 color-mix 从 --foreground 派生
       --text/--text-dim2/--text-dim，只需在明暗块里改 --foreground。
-   3. 主题色融合：--brand 系是 --accent-blue 的别名；7 主题色染
-      brand/强调层（焦点、勾选、封面首字、选中图标），面板材质保持
-      中性灰玻璃。默认色为紫罗兰（与 utils.mjs 的 DEFAULT_THEME_SETTINGS
-      一致），theme.js 异步写入 data-theme-color 后按末段调色板接管。
+   3. 主题色：7 色预设（data-theme-color）已移除——官方 theming 只有 dark/light；accent 回归中性灰，--brand 用官方原版青绿直值。
    4. 窄幅适配：只保留扩展实际复用的类（清单由 ui-contract 契约锁死），
       桌面货架/移动外壳等未用规则不搬运；组件几何沿用扩展的紧凑取值，
       不引入模板的桌面布局假设。
@@ -161,9 +158,11 @@ img { -webkit-user-drag: none; }
   --light-2: transparent;
   --light-3: transparent;
 
-  /* 强调与 brand：默认紫罗兰；7 主题色清单见文件末段。 */
-  --accent-blue: #8a7cff;
-  --brand: var(--accent-blue);
+  /* 强调与 brand：7 主题色预设已移除（官方 theming 只有 dark/light，
+     "interface has no colour of its own"）——accent 回归官方中性灰，
+     --brand 恢复官方原版青绿直值（节制使用）。 */
+  --accent-blue: #a3aab5;
+  --brand: oklch(0.78 0.13 166);
   --brand-foreground: #1f1f1f;
   --brand-muted: color-mix(in oklch, var(--brand) 15%, transparent);
 
@@ -228,7 +227,7 @@ img { -webkit-user-drag: none; }
     --light-2: oklch(0.75 0.08 240 / 11%);
     --light-3: oklch(0.68 0.13 165 / 4%);
 
-    --accent-blue: #6d5dfc;
+    --accent-blue: #5f6368;
     --brand-foreground: #ffffff;
     --brand-muted: color-mix(in oklch, var(--brand) 12%, transparent);
 
@@ -283,7 +282,7 @@ img { -webkit-user-drag: none; }
   --light-2: oklch(0.75 0.08 240 / 11%);
   --light-3: oklch(0.68 0.13 165 / 4%);
 
-  --accent-blue: #6d5dfc;
+  --accent-blue: #5f6368;
   --brand-foreground: #ffffff;
   --brand-muted: color-mix(in oklch, var(--brand) 12%, transparent);
 
@@ -335,8 +334,7 @@ img { -webkit-user-drag: none; }
 
 /* ================= 导航行 =================
    hover 是模板的 --hover-faint；选中项是模板 chrome.css 的 999px 胶囊：
-   min-height 33px，选中/展开共用「唯一状态」那块清玻璃（rim+edge 三件套），
-   彩色主题下按模板 accent 14% 染色模式用 --accent-blue 调染。 */
+   min-height 33px，选中/展开共用「唯一状态」那块清玻璃（rim+edge 三件套）。 */
 
 .nav-group { display: flex; flex-direction: column; gap: 6px; }
 
@@ -362,18 +360,6 @@ img { -webkit-user-drag: none; }
     0 0 0 1px var(--glass-state-edge);
   color: var(--text-strong);
   font-weight: 500;
-}
-
-/* 彩色主题（7 色预设，graphite 无）：模板 chrome.css 的 accent 14% 染色
-   —— 淡染色透明玻璃 + 顶缘光线 + 发丝线，图标染强调色墨。 */
-:root[data-theme-color] .nav-item--selected > .nav-link {
-  background-color: color-mix(in oklch, var(--accent-blue) 14%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklch, white 35%, var(--accent-blue) 18%),
-    0 0 0 1px color-mix(in oklch, var(--accent-blue) 26%, transparent);
-}
-:root[data-theme-color] .nav-item--selected > .nav-link .nav-icon {
-  color: var(--accent-blue);
 }
 
 .nav-icon { width: 20px; height: 20px; flex: none; display: flex; align-items: center; justify-content: center; margin-right: 3px; }
@@ -659,30 +645,6 @@ img { -webkit-user-drag: none; }
   color: var(--text-dim2);
   line-height: 1.6;
 }
-
-/* ============================================================
-   插件扩展：--accent-blue / --brand 的 7 种预设主题色
-   取值与 utils.mjs 的 THEME_COLORS 一一对应（dark / light）。
-   材质保持中性灰玻璃：主题色只染 brand/强调层。这些选择器与
-   上面 token 块同权重，靠文档顺序取胜，必须放在最后。
-   ============================================================ */
-
-:root[data-theme-color="violet"] { --accent-blue: #8a7cff; }
-:root[data-theme-color="blue"] { --accent-blue: #60a5fa; }
-:root[data-theme-color="teal"] { --accent-blue: #2dd4bf; }
-:root[data-theme-color="green"] { --accent-blue: #4ade80; }
-:root[data-theme-color="orange"] { --accent-blue: #fb923c; }
-:root[data-theme-color="rose"] { --accent-blue: #fb7185; }
-:root[data-theme-color="gray"] { --accent-blue: #a3aab5; }
-
-:root[data-theme-effective="light"][data-theme-color="violet"] { --accent-blue: #6d5dfc; }
-:root[data-theme-effective="light"][data-theme-color="blue"] { --accent-blue: #2563eb; }
-:root[data-theme-effective="light"][data-theme-color="teal"] { --accent-blue: #0f766e; }
-:root[data-theme-effective="light"][data-theme-color="green"] { --accent-blue: #15803d; }
-:root[data-theme-effective="light"][data-theme-color="orange"] { --accent-blue: #c2410c; }
-:root[data-theme-effective="light"][data-theme-color="rose"] { --accent-blue: #be123c; }
-:root[data-theme-effective="light"][data-theme-color="gray"] { --accent-blue: #5f6368; }
-
 /* ============================================================
    自绘悬浮滚动条（S6'，模板 chrome.css .mac-scrollbar 的 vanilla 移植）
    逻辑在 src/vendor/mac-scrollbar.js；样式抄模板取值。轨道固定在

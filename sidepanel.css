@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    侧边栏 —— 只写版式、几何覆盖与 vendor 层没有的新组件
    材质、收光、hover/选中态一律来自 src/vendor/solid-glass.css。
    结构：先「几何覆盖」（每条都注明来源类），再「新组件」。
@@ -18,11 +18,29 @@
 /* ================= 几何覆盖 ================= */
 
 /* 来源 .sidebar：position:fixed + left/top/bottom:--sb-gap + width:--sb-w。
-   面板只需要补 right 并放开固定宽度，其余（离屏 12px、圆角 20px、玻璃、
-   rim/hairline/shadow 收光）全部继承。 */
+   B：外围玻璃壳整体移除——浏览器侧边栏面板本身就是全高页面，再套一层
+   「浮起 12px 的圆角玻璃 pane」是多余的壳。面板铺满视口（inset 0），
+   圆角/玻璃底/收光全部取消，.panel 只保留 position:fixed 作为滚动条
+   的 containing block；头部玻璃条（.panel__head）成为唯一的区域玻璃。
+   大面积页面底色（body 的 --bg + 三处光源）也一并撤掉，跟随浏览器侧边栏底色。 */
 .panel {
-  right: var(--sb-gap);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
   width: auto;
+  border-radius: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* 来源 body（vendor 层的 --bg 底 + 模板三处光源）：side panel 跟随浏览器
+   主题底色，页面自身不再铺大面积玻璃背景。 */
+body {
+  background: transparent;
+  background-image: none;
 }
 
 /* 来源 .sidebar__scroll：flex:1 + 5px 细滚动条。S6'：滚动条改由 vendor 层
@@ -289,7 +307,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   transform: translateY(-50%);
 }
 .collection-glyph .icon { width: 17px; height: 17px; }
-.nav-item--selected .collection-glyph { color: var(--accent-blue); }
+.nav-item--selected .collection-glyph { color: var(--text-strong); }
 .collection-group-title {
   padding: 10px 8px 2px;
   color: var(--text-dim);
@@ -352,7 +370,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 .pick:hover { border-color: var(--text-dim); }
 .pick:checked {
   border-color: transparent;
-  background-color: var(--accent-blue);
+  background-color: var(--foreground);
   background-image: var(--pick-check);
   background-repeat: no-repeat;
   background-position: center;
@@ -360,7 +378,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
 }
 .pick:indeterminate {
   border-color: transparent;
-  background-color: var(--accent-blue);
+  background-color: var(--foreground);
   background-image: linear-gradient(var(--pick-glyph), var(--pick-glyph));
   background-repeat: no-repeat;
   background-position: center;
@@ -393,7 +411,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   background: var(--nav-selected);
 }
 .cover-initial {
-  color: var(--accent-blue);
+  color: var(--text-dim2);
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
@@ -447,7 +465,7 @@ dialog.app-dialog.drawer:not([open]) { display: none; }
   gap: 8px;
   list-style: none;
   padding: 4px 0;
-  color: var(--accent-blue);
+  color: var(--text-dim2);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

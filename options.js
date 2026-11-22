@@ -5,7 +5,6 @@ import {
   DEFAULT_THEME_SETTINGS,
   OPTIMIZE_LANGUAGES,
   OPTIMIZE_MODES,
-  THEME_COLORS,
   THEME_MODES
 } from './utils.mjs';
 
@@ -23,7 +22,6 @@ const accountCard = document.querySelector('#accountCard');
 const accountName = document.querySelector('#accountName');
 const accountEmail = document.querySelector('#accountEmail');
 const themeModeSelect = document.querySelector('#themeModeSelect');
-const themeColorPicker = document.querySelector('#themeColorPicker');
 const optimizeModeSelect = document.querySelector('#optimizeModeSelect');
 const optimizeModeHint = document.querySelector('#optimizeModeHint');
 const optimizeAiFields = document.querySelector('#optimizeAiFields');
@@ -67,40 +65,20 @@ async function loadSavedSettings() {
   }
 }
 
-function renderThemeColors(selected) {
-  themeColorPicker.replaceChildren();
-  Object.entries(THEME_COLORS).forEach(([id, color]) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `theme-swatch${id === selected ? ' selected' : ''}`;
-    button.dataset.color = id;
-    button.style.setProperty('--swatch', color.light);
-    button.title = color.label;
-    button.setAttribute('aria-label', color.label);
-    button.setAttribute('role', 'radio');
-    button.setAttribute('aria-checked', String(id === selected));
-    // 选中态由 CSS 的圆环表达，不需要额外的勾号字形。
-    button.addEventListener('click', () => updateAppearance({ themeColor: id }));
-    themeColorPicker.appendChild(button);
-  });
-}
-
 async function updateAppearance(changes = {}) {
-  const current = await chrome.storage.local.get(['themeColor', 'themeMode']);
+  const current = await chrome.storage.local.get(['themeMode']);
   const settings = await saveThemeSettings({
     ...DEFAULT_THEME_SETTINGS,
     ...current,
     ...changes
   });
   themeModeSelect.value = settings.themeMode;
-  renderThemeColors(settings.themeColor);
 }
 
 async function loadAppearance() {
   const settings = await initTheme();
   themeModeSelect.replaceChildren(...THEME_MODES.map(mode => new Option(mode.label, mode.id)));
   themeModeSelect.value = settings.themeMode;
-  renderThemeColors(settings.themeColor);
 }
 
 async function grantOptimizeAccess() {

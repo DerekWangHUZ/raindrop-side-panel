@@ -122,20 +122,6 @@ code {
 .options-row__control { width: auto; min-width: 168px; flex: none; margin-left: auto; }
 .options-row__input { width: auto; min-width: 168px; height: 32px; flex: none; margin-left: auto; }
 
-/* 主题色：圆形语言与 vendor 层的 .lcd-art 一致 */.swatches { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
-.theme-swatch {
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--swatch);
-  box-shadow: 0 0 0 1px var(--hairline);
-  transition: box-shadow 0.15s ease;
-}
-.theme-swatch:hover,
-.theme-swatch.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--swatch); }
-
 .options-guide { padding: 0 0 0 20px; margin: 0; }
 .options-guide li::marker { color: var(--text-dim2); }
 .options-guide strong { color: var(--text); }
@@ -148,7 +134,6 @@ code {
   .options-card__head { padding: 0 12px; }
   .options-row { flex-wrap: wrap; }
   .options-row__control, .options-row__input { width: 100%; min-width: 0; flex: 1 1 100%; }
-  .swatches { justify-content: flex-start; }
   .options-row-inline { flex-direction: column; }
   .options-row-inline .btn-pill { width: 100%; }
   .options-actions .btn-pill { flex: 1; }

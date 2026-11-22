@@ -15,7 +15,6 @@ import {
   EXCERPT_MAX_LENGTH,
   OPTIMIZE_LANGUAGES,
   OPTIMIZE_MODES,
-  THEME_COLORS,
   THEME_MODES,
   chunkItems,
   clampLength,
@@ -110,7 +109,7 @@ test('buildRaindropPayload 归一化', () => {
 
 // --- 常量表 ----------------------------------------------------------------
 test('主题、排序常量表', () => {
-  assert.deepEqual(Object.keys(THEME_COLORS), ['violet', 'blue', 'teal', 'green', 'orange', 'rose', 'gray']);
+  // 7 色 THEME_COLORS 已移除（官方 theming 只有 dark/light）。
   assert.deepEqual(THEME_MODES.map(mode => mode.id), ['system', 'light', 'dark']);
   assert.equal(DEFAULT_SORT, '-created');
   assert.deepEqual(SORT_OPTIONS.map(option => option.id), [
