@@ -16,15 +16,15 @@
 - 单条书签读取、编辑、删除（移入 Raindrop Trash）
 - 多选书签后批量新增、移动、编辑和删除
 - 设置页选择跟随系统、固定浅色或固定深色模式
-- 界面为 Solid Glass 材质（官方 [deeplethe/solid-glass](https://github.com/deeplethe/solid-glass) 设计系统）：留缝的圆角玻璃卡片列表、带导轨的树状收藏夹、玻璃卡片设置页与凹槽分段控件；支持键盘焦点、减少动态效果、减少透明度与高对比偏好
+- 界面继承官方 **[deeplethe/solid-glass](https://github.com/deeplethe/solid-glass)** 设计系统（React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui Base UI + 原版 `solid-glass.css`）：顶栏收藏夹抽屉（宽屏自动停靠）、单行搜索与排序、可折叠当前页快存卡、留缝 `ItemGroup` 书签卡片流、三页签设置台；支持键盘导航、`prefers-reduced-motion` 与 `prefers-reduced-transparency`
 - 所有书签数据直接读写 Raindrop REST API；无自建后端
 
 ## 安装（开发者模式）
 
-1. 下载并解压本项目或 Release 中的 ZIP。
+1. 克隆或下载本项目，执行 `npm install && npm run build`，将完整 MV3 扩展产物构建至 `dist/`。
 2. 打开浏览器的扩展管理页面（通常为 `chrome://extensions`）。
 3. 开启“开发者模式”。
-4. 点击“加载已解压的扩展程序”，选择本项目目录。
+4. 点击“加载已解压的扩展程序”，选择本项目的 **`dist/`** 目录。
 5. 打开扩展“详细信息” → “扩展程序选项”，或者在侧边栏中点击设置按钮。
 6. 粘贴 Raindrop **Test Token** 并点击“验证并保存”。
 7. 将扩展固定到工具栏；点击图标即可打开 Side Panel。
@@ -129,27 +129,32 @@ api.js                      Raindrop REST API 封装（含 429/5xx 退避重试�
 optimizer.js                优化：设置读写、本地规则与 AI 重写
 page-meta.js                读取当前标签页标题与描述
 utils.mjs                   批量输入、分组、主题常量与优化规则
-theme.js                    主题状态与实时应用
-options.html/css/js         Test Token、外观与优化方式设置
-src/vendor/solid-glass.css  Solid Glass 材质层（vendor 自官方模板，token 禁止手工微调）
-src/vendor/mac-scrollbar.js 自绘悬浮滚动条逻辑
-ui-base.css                 插件自有基础层：状态类、焦点、共享表单控件、无障碍偏好
-sidepanel.html/css/js       侧边栏 UI、树状收藏夹、书签管理
-tests/verify.test.mjs       纯函数校验（node --test）
-tests/ui-contract.test.mjs  界面契约校验（id、图标、类名、无障碍、CSP）
-package.json                npm 元数据与 test 脚本
-CHANGELOG.md                更新日志
-LICENSE                     MIT 许可证
-icons/                      扩展图标
+sidepanel.html              Side Panel 入口
+options.html                设置页入口
+src/
+  styles/solid-glass.css    官方 deeplethe/solid-glass 样式表（原版无改动）
+  styles/index.css          Tailwind CSS 4 + shadcn + Solid Glass 导入链
+  components/ui/            官方 Solid Glass 与 shadcn Base UI 组件集
+  components/CoverMedia.tsx 封面单元素兜底组件（图片或标题首字）
+  lib/                      主题同步（html.dark）与强类型 Raindrop 适配层
+  sidepanel/                侧边栏视图与交互弹窗
+  options/                  设置页三栏工作台
+tests/
+  verify.test.mjs           核心业务逻辑单测（node --test）
+  ui-contract.test.mjs      官方 Solid Glass 样式与 MV3 CSP 契约测试
+  ui/*.test.tsx             React 组件与交互测试（Vitest）
+vite.config.ts              Vite 多入口构建与 MV3 产物输出（dist/）
+package.json                npm 脚本与依赖
 ```
 
-## 测试
+## 构建与测试
 
 ```bash
-npm test
+npm install
+npm run typecheck
+npm run build   # 输出可加载的 MV3 扩展至 dist/
+npm test        # 运行 node --test 与 Vitest 组件测试
 ```
-
-或直接运行 `node --test`。测试不依赖浏览器环境，覆盖批量解析、标题/摘要优化规则、AI 响应解析、API 重试策略与用户信息缓存。界面契约测试（`tests/ui-contract.test.mjs`）以源码断言保证：侧边栏与设置页的 `#id` 与 JS 引用一致、图标 sprite 无缺失也无死符号、不出现 emoji/字符图标、渲染层使用的类名与 Solid Glass 官方组件词汇一致、`src/vendor/solid-glass.css` vendor 文件保持可溯源且 token 未被手工微调、以及没有内联脚本。
 
 打包发行前请先运行完整性标签守卫（目录被标成 Low 完整性时，其中的产物会被视为不可信）：
 

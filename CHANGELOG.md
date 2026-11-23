@@ -1,5 +1,18 @@
 # 更新日志
 
+## 3.0
+
+**前端架构、页面布局与组件体系全面推倒重做**：
+
+- **技术栈对齐官方规范**：采用官方 [`deeplethe/solid-glass`](https://github.com/deeplethe/solid-glass) 标准技术栈（React 19 + TypeScript + Vite + Tailwind CSS 4 + `@base-ui/react` shadcn/ui + `lucide-react`），原样引入官方 `solid-glass.css`（零魔改 token、零残留 AppleMusicUI 类名与自定义 CSS 覆盖层），通过 `html.dark` 切换深浅模式。
+- **侧边栏页面布局重构**：
+  - 消除原本双层重复标题与内联树挤压列表的问题，改为单行顶栏 + 左侧滑出收藏夹抽屉（`Sheet`，宽屏 `>=720px` 自动停靠）。
+  - 集成搜索与排序工具条（支持 `/` 与 `⌘K` 快捷键、点击书签 `Tag` 直接过滤、摘要预览开关）。
+  - 当前页快存卡（`Card`）支持一键折叠；多选复选框常态隐藏节省横向空间，开启多选或悬停/选中时显现，底部浮现 `bg-popover` 批量操作栏。
+  - 弹窗与操作菜单全面替换为 Base UI 原生 `Dialog`、`AlertDialog`、`Select` 与 `DropdownMenu`。
+- **设置页重构**：使用官方 `Tabs` 组织「账户与连接」「外观与材质」「标题与摘要优化」三大页签，修复原 `applyThemeModeButtons` 未定义导致的运行时崩溃，并附带三档玻璃厚度预览。
+- **核心逻辑零损失**：保留 `api.js`、`optimizer.js`、`page-meta.js`、`utils.mjs`、`background.js` 与所有 `chrome.storage.local` 键名，新增 Vitest 组件测试与 MV3 `dist/` CSP 契约校验。
+
 ## 2.1
 
 **前端整体推倒重做**：两个页面的 HTML 结构、CSS、视图层渲染 JS 与 UI 契约测试全部重写，从 AppleMusicUI 音乐播放器皮肤彻底换成官方 **Solid Glass**（[deeplethe/solid-glass](https://github.com/deeplethe/solid-glass) main 分支，2026-11-23 抓取）的组件语言。功能零损失：全部元素 id、存储键、API 行为、键盘可达性保持不变。
@@ -28,6 +41,22 @@
 - 重写守门清单：侧边栏必须用官方组件词汇（item-group/item/menu-btn/menu-sub/save-card/toolbar…），设置页必须用（glass-panel/card/segmented/field-input…）；新材质锁（`.item` 引 `--panel/--glass-edge/--glass-inner` 且无逐行阴影毛玻璃、`.menu-sub` 左导轨、`.menu-btn--selected` 唯一状态三件套、`.segmented` 凹槽、行尾按钮浮现规则、无 spinner 残留）。
 - 保留全部既有守门精神：id 契约、dialog/showModal、图标 sprite、禁字形、vendor 溯源与 token 锁、封面二选一逻辑、无障碍三守卫、CSP。
 - 移除随旧结构退役的断言：save-pill 圆帽几何、`.card-sub` 截断盒、AppleMusicUI 类名清单。
+
+### 组件审查修复（逐组件对照官方源码）
+
+用户指出排序下拉仍在用浏览器原生弹层（白底白字）。复盘发现整套组件语言仍有系统性偏差，本轮按官方 `button.tsx` / `checkbox.tsx` / `dialog.tsx` / `empty.tsx` / `field.tsx` / `tabs.tsx` / `select.tsx` / `item.tsx` 逐项修复：
+
+- **原生下拉 → 官方 Select**（P0）：6 个原生 `<select>`（排序、三个弹层收藏夹选择、设置页两个下拉）保留为隐藏数据源，新增 `ui-select.js` 渲染字段玻璃触发器 + popover 玻璃列表（top layer，弹层内不被裁剪、不被 inert）；选中行唯一状态 + 右侧勾形，方向键/Home/End/Enter/Escape/Tab/外部点击闭环。
+- **按钮**（P1）：`.btn-pill` 从 1000px 胶囊改为官方 Button 几何（32px / 9px 圆角 / px 10 / text-sm / 500 / svg 16）；危险按钮从实红底白字改为官方 destructive 淡红 tint（12% 底 + danger 文字 + 28%/16% 收光）；次要按钮补 glass 变体的 contact 阴影，hover 改 `--hover`。
+- **字号体系**（P1）：新增官方 Tailwind 字级 token（text-sm 14/20、text-xs 12/16、text-base 16/24，vendor 只增不改）；正文、按钮、表单、菜单、Item 标题、设置行改回 text-sm；描述/元信息 12px；品牌名 14/500；收藏夹分组标题 12/500 muted；弹窗标题 16/500。
+- **复选框**（P2）：20px 圆形 → 官方 16px / 4px 圆角方形 + 可见发丝边框；未选凹槽、选中墨面材质保留；伪元素外扩命中区。
+- **折叠钮**（P2）：树行展开/收起从无 tabindex 的 span 改为真实 `<button class="menu-toggle">`（`aria-expanded`），键盘可达；行结构改为 `li.menu-row`。
+- **菜单高亮**（P2）：菜单行/选项行 hover 从平涂 tint 改为唯一状态清玻璃（glass-state + 顶缘光线 + 发丝线）。
+- **对话框**（P2）：标题 22/700 → 官方 DialogTitle 16/500；动作区改为独立 `.dialog-footer`（顶部分隔线 + 4% 淡底 + 内边距）。
+- **空状态**（P2）：图标盒 44 → 官方 Empty 的 32px；标题/描述 text-sm。
+- **分段控件**（P3）：去外圈描边（官方托盘是凹槽）；选中段改官方 active tab（glass-control + contact + glass-edge 边框）；text-sm。
+- **焦点环**（P3）：全局 `:focus-visible` 改用 `--focus-line`（细线 + 1px 间隙）。
+- 契约测试新增 11 条锁定（官方字级 token、按钮几何、destructive tint、contact 阴影、Select 替换、复选框 16/4、折叠钮真实按钮、菜单高亮唯一状态、dialog-footer、空状态 32、focus-line），并把 `ui-select.js` 纳入禁字形扫描。
 
 ## 2.0
 
