@@ -150,3 +150,9 @@ npm test
 ```
 
 或直接运行 `node --test`。测试不依赖浏览器环境，覆盖批量解析、标题/摘要优化规则、AI 响应解析、API 重试策略与用户信息缓存。界面契约测试（`tests/ui-contract.test.mjs`）以源码断言保证：侧边栏与设置页的 `#id` 与 JS 引用一致、图标 sprite 无缺失也无死符号、不出现 emoji/字符图标、渲染层使用的类名与 Solid Glass 官方组件词汇一致、`src/vendor/solid-glass.css` vendor 文件保持可溯源且 token 未被手工微调、以及没有内联脚本。
+
+打包发行前请先运行完整性标签守卫（目录被标成 Low 完整性时，其中的产物会被视为不可信）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\integrity-guard.ps1
+```
